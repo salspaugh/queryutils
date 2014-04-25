@@ -31,11 +31,9 @@ def tag_parseable(query):
 def parse_query(query):
     text = ""
     if isinstance(query, Query):
-        text = query.text
-        q = unicode(text).strip() 
+        q = str(query.text.encode("utf8")) if type(query.text) == unicode else str(query.text.decode("utf8").encode("utf8"))
     else:
-        text = query
-        q = unicode(text).strip()
+        q = str(query.encode("utf8")) if type(query) == unicode else str(query.decode("utf8").encode("utf8"))
     try:
         parsetree = splparse(q)
     except:

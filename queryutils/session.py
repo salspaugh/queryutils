@@ -51,8 +51,16 @@ def remove_autorecurring_queries_by_searchtype(user, version=Version.UNDIAG_2014
         handgenerated = "historical"
     else:
         print "Unknown data version -- please provide a known version." # TODO: Raise error.
-    user.autorecurring_queries = [query for query in user.queries if query.searchtype != handgenerated]
-    user.queries = [query for query in user.queries if query.searchtype == handgenerated]
+    user.autorecurring_queries = [query for query in user.queries if query.searchtype != handgenerated or suspicious(query)]
+    user.queries = [query for query in user.queries if query.searchtype == handgenerated and not suspicious(query)]
+
+def suspicious(query):
+    q = query.text.strip().lower().replace(" ", "")
+    return q == "| metadata type=sourcetypes | search totalcount > 0".replace(" ", "") or \
+        q == "|history | head 2000 | search event_count>0 or result_count>0 | dedup search | table search".replace(" ", "") or \
+        (q[:15] == "typeaheadprefix") or \
+        q.find("| metadata type=sourcetypes | search totalcount > 0".replace(" ", "")) > -1 or \
+        q == "| inputlookup splunk_servers_cache | sort sort_rank".replace(" ", "")
 
 def remove_autorecurring_queries_by_time(user):
     unique_queries = defaultdict(list)
