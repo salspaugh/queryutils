@@ -1,4 +1,3 @@
-
 from splparser import parse as splparse
 from .query import *
 from logging import getLogger as get_logger

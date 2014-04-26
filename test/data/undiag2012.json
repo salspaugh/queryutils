@@ -1,0 +1,118 @@
+[
+    {
+        "search": "search foo | search bar",
+        "searchtype": "other",
+        "search_et": "1328054400.000000000",
+        "$offset": "1",
+        "search_lt": "1330725007.000000000",
+        "_time": "2012-03-02T13:50:08.574-08:00",
+        "range": "2670607.000000000",
+        "user": "alspaugh",
+        "total_run_time": "1015.63",
+        "search_id": "123044597__123044597__search_SUJNIHVzZXIgSnVtYm94IGNvbm5leGlvbnMgMzBk_1330725008.3403.giscihsiem10"
+    },
+    {
+        "search_lt": "1330724814.000000000",
+        "searchtype": "other",
+        "search_et": "N/A",
+        "$offset": "2",
+        "search": "search sourcetype=logs 'error' | stats count(f) by b",
+        "_time": "2012-03-02T13:46:55.370-08:00",
+        "total_run_time": "187.34",
+        "user": "alspaugh",
+        "search_id": "123044597__123044597__search_SUJNIHVzZXIgSnVtcGJveCBsYXN0IGNvbm5leGlvbg_1330724815.3398.giscihsiem10"
+    },
+    {
+        "search_lt": "1330725007.000000000",
+        "searchtype": "other",
+        "search_et": "N/A",
+        "$offset": "3",
+        "search": "search 404 | stats count",
+        "_time": "2012-03-02T13:50:08.576-08:00",
+        "total_run_time": "2047.50",
+        "user": "alspaugh",
+        "search_id": "123044597__123044597__search_SUJNIHVzZXIgSnVtcGJveCBsYXN0IGNvbm5leGlvbg_1330725008.3404.giscihsiem10"
+    },
+    {
+        "search": "search index=os | eval duration=hours/24",
+        "searchtype": "historical",
+        "search_et": "1330635600.000000000",
+        "$offset": "4",
+        "search_lt": "1330724346.000000000",
+        "_time": "2012-03-02T13:39:06.873-08:00",
+        "range": "88746.000000000",
+        "user": "alspaugh",
+        "total_run_time": "55.33",
+        "search_id": "1330724346.3383.giscihsiem10"
+    },
+    {
+        "search": "| inputlookup visitors | eval visitor_conversion_rate_buyers_only = tostring(round(Transactions/visitors_with_transactions*100, 2)).'%'",
+        "searchtype": "historical",
+        "search_et": "1330387200.000000000",
+        "$offset": "5",
+        "search_lt": "1330473600.000000000",
+        "_time": "2012-03-02T13:39:08.506-08:00",
+        "range": "86400.000000000",
+        "user": "alspaugh",
+        "total_run_time": "454.29",
+        "search_id": "1330724348.3384.giscihsiem10"
+    },
+    {
+        "search_lt": "N/A",
+        "searchtype": "historical",
+        "search_et": "N/A",
+        "$offset": "6",
+        "search": "search index=pan_logs src_ip=10.101.10.*  NOT deny OR block | dedup dest | lookup dnsLookup src | fillnull value='NO DNS' | eventstats count AS total by src",
+        "_time": "2012-03-02T13:45:52.753-08:00",
+        "total_run_time": "2101.10",
+        "user": "alspaugh",
+        "search_id": "1330724752.3397.giscihsiem10"
+    },
+    {
+        "search_lt": "N/A",
+        "searchtype": "historical",
+        "search_et": "N/A",
+        "$offset": "7",
+        "search": "search index=email",
+        "_time": "2012-03-02T13:48:21.393-08:00",
+        "total_run_time": "1952.54",
+        "user": "alspaugh",
+        "search_id": "1330724901.3401.giscihsiem10"
+    },
+    {
+        "search": "search index=pan_logs src_ip=10.101.10.*  NOT deny OR block | dedup dest | lookup dnsLookup src | fillnull value='NO DNS' | eventstats count AS total by src",
+        "searchtype": "historical",
+        "search_et": "1330635600.000000000",
+        "$offset": "8",
+        "search_lt": "1330724945.000000000",
+        "_time": "2012-03-02T13:49:05.767-08:00",
+        "range": "89345.000000000",
+        "user": "alspaugh",
+        "total_run_time": "57.05",
+        "search_id": "1330724945.3402.giscihsiem10"
+    },
+    {
+        "search": "search foo=3 bar=5 | table user, foo, bar",
+        "searchtype": "historical",
+        "search_et": "1330635600.000000000",
+        "$offset": "9",
+        "search_lt": "1330725248.000000000",
+        "_time": "2012-03-02T13:54:08.338-08:00",
+        "range": "89648.000000000",
+        "user": "alspaugh",
+        "total_run_time": "55.11",
+        "search_id": "1330725248.3405.giscihsiem10"
+    },
+    {
+        "search": "search index=app | top client by region",
+        "searchtype": "historical",
+        "search_et": "1330635600.000000000",
+        "$offset": "10",
+        "search_lt": "1330725301.000000000",
+        "_time": "2012-03-02T13:55:01.742-08:00",
+        "range": "89701.000000000",
+        "user": "alspaugh",
+        "total_run_time": "30.08",
+        "search_id": "1330725301.3407.giscihsiem10"
+    }
+]

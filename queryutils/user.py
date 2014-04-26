@@ -1,14 +1,20 @@
-
 from json import JSONEncoder
 
 class User(object):
-    
+
+
     def __init__(self, name):
         self.name = name
         self.sessions = {}
         self.queries = []
+        self.noninteractive_queries = []
+        self.interactive_queries = []
+        self.case_id = None
+        self.user_type = None
+
 
 class VerboseUserEncoder(JSONEncoder):
+
 
     def encode(self, obj):
         user_dict = {}
@@ -22,12 +28,16 @@ class VerboseUserEncoder(JSONEncoder):
         user_dict['queries'] = query_list
         return user_dict
 
+
     def default(self, obj):
         if isinstance(obj, User):
             return self.encode(obj)
         return JSONEncoder.default(self, obj)
 
+
+
 class UserEncoder(JSONEncoder):
+
 
     def encode(self, obj):
         user_dict = {}
@@ -57,6 +67,7 @@ class UserEncoder(JSONEncoder):
             print "Not encoding autorecurring queries. No such attribute."
         user_dict['sessions'] = session_dict
         return user_dict
+
 
     def default(self, obj):
         if isinstance(obj, User):

@@ -1,4 +1,3 @@
-
 import csv
 import dateutil.parser
 import os
@@ -41,47 +40,16 @@ def get_users_from_file(filename):
 
             timestamp = float(dateutil.parser.parse(row.get('_time', None)).strftime('%s.%f'))
 
-            search = row.get('search', None)
-            if search is not None:
-                query_string = unicode(search.decode("utf-8")).strip()
+            querystring = row.get('search', None)
+            if querystring is not None:
+                querystring = unicode(querystring.decode("utf-8")).strip()
 
-            searchtype = row.get('searchtype', None)
-            if searchtype is None:
-                searchtype = row.get('search_type', None)
-            if searchtype is not None:
-                searchtype = unicode(searchtype.decode("utf-8"))
-
-            search_et = row.get('search_et', None)
-            if search_et is not None:
-                try:
-                    search_et = float(search_et.decode("utf-8"))
-                except:
-                    search_et = None
-
-            search_lt = row.get('search_lt', None)
-            if search_lt is not None:
-                try:
-                    search_lt = float(search_lt.decode("utf-8"))
-                except:
-                    search_lt = None
-
-            range = row.get('range', None)
-            if range is not None:
-                try:
-                    range = float(range.decode("utf-8"))
-                except:
-                    range = None
-
-            is_realtime = row.get('is_realtime', None)
-            if is_realtime is not None and is_realtime == "false":
-                is_realtime = False
-            if is_realtime is not None and is_realtime == "true":
-                is_realtime = True
-
-            splunk_id = row.get('search_id', None)
-            if splunk_id is not None:
-                splunk_id = unicode(splunk_id.decode("utf-8"))
-
+            query = Query(querystring, timestamp)
+            if not username in users:
+                users[username] = user
+            users[username].queries.append(query)
+            query.user = users[username]
+            
             runtime = row.get('runtime', None)
             if runtime is None:
                 runtime = row.get('total_run_time', None)
@@ -90,20 +58,61 @@ def get_users_from_file(filename):
                     runtime = float(runtime.decode("utf-8"))
                 except:
                     runtime = None
+            query.execution_time = runtime
+
+            search_et = row.get('search_et', None)
+            if search_et is not None:
+                try:
+                    search_et = float(search_et.decode("utf-8"))
+                except:
+                    search_et = None
+            query.earliest_event = search_et
+
+            search_lt = row.get('search_lt', None)
+            if search_lt is not None:
+                try:
+                    search_lt = float(search_lt.decode("utf-8"))
+                except:
+                    search_lt = None
+            query.latest_event = search_lt
+
+            range = row.get('range', None)
+            if range is not None:
+                try:
+                    range = float(range.decode("utf-8"))
+                except:
+                    range = None
+            query.range = range
+
+            is_realtime = row.get('is_realtime', None)
+            if is_realtime is not None and is_realtime == "false":
+                is_realtime = False
+            if is_realtime is not None and is_realtime == "true":
+                is_realtime = True
+            query.is_realtime = is_realtime
+
+            searchtype = row.get('searchtype', None)
+            if searchtype is None:
+                searchtype = row.get('search_type', None)
+            if searchtype is not None:
+                searchtype = unicode(searchtype.decode("utf-8"))
+            query.search_type = searchtype
+
+            splunk_id = row.get('search_id', None)
+            if splunk_id is not None:
+                splunk_id = unicode(splunk_id.decode("utf-8"))
+            query.splunk_search_id = splunk_id
 
             savedsearch_name = row.get('savedsearch_name', None)
             if savedsearch_name is not None:
                 savedsearch_name = unicode(savedsearch_name.decode("utf-8"))
+            query.saved_search_name = savedsearch_name
 
-            query = Query(query_string, timestamp, user, searchtype, 
-                            search_et, search_lt, range, 
-                            is_realtime, splunk_id, runtime, savedsearch_name) 
-            
-            if not username in users:
-                users[username] = user
-            users[username].queries.append(query)
             logger.debug("Successfully read query.")
-    return users.values()
+
+    # TODO: FIXME: This might cause incorrectness if a user's queries span files.
+    for user in users.values():
+        yield user
 
 def get_users_from_directory(directory, limit=LIMIT):
     raw_data_files = get_csv_files(directory, limit=limit)

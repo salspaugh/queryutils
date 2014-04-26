@@ -14,18 +14,21 @@ BYTES_IN_MB = 1048576
 def get_users_from_file(filename):
     queries = []
     users = {}
-    for result in splunk_result_iter([f]):
+    for result in splunk_result_iter([filename]):
         if 'user' in result and '_time' in result and 'search' in result:
             username = result['user']
             timestamp = float(dateutil.parser.parse(result['_time']).strftime('%s.%f'))
             query_string = unicode(result['search'].strip())
             user = User(username)
-            type = result['searchtype']
-            query = Query(query_string, timestamp, user, type) 
+            searchtype = result['searchtype']
+            query = Query(query_string, timestamp)
+            query.user = user
+            query.search_type = searchtype
             if not username in users:
                 users[username] = user
             users[username].queries.append(query)
-    yield users.values()
+    for user in users.values():
+        yield user
 
 def get_users_from_directory(limit=50*BYTES_IN_MB):
     raw_data_files = get_json_files(limit=limit)

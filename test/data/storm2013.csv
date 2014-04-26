@@ -1,0 +1,11 @@
+searchtype,range,search_lt,search_et,search,search_id,user,total_run_time,_time
+searchtype,range,search_lt,search_et,search,search_id,alspaugh,total_run_time,_time
+historical,864000.000000000,1364799660.000000000,1363935660.000000000,search foo | search bar,1364799660.36104,alspaugh,2.21,2013-04-01T00:01:00.033-0700
+historical,259200.000000000,1364799660.000000000,1364540460.000000000,search sourcetype=logs 'error' | stats count(f) by b,1364799660.36105,alspaugh,5.00,2013-04-01T00:01:00.036-0700
+historical,259200.000000000,1364799660.000000000,1364540460.000000000,search 404 | stats count,1364799660.36106,alspaugh,3.88,2013-04-01T00:01:00.036-0700
+historical,,N/A,1364540460.000000000,search index=os | eval duration=hours/24,1364799660.36107,alspaugh,4.10,2013-04-01T00:01:00.036-0700
+historical,14400.000000000,1364799660.000000000,1364785260.000000000,"| inputlookup visitors | eval visitor_conversion_rate_buyers_only = tostring(round(Transactions/visitors_with_transactions*100, 2)).'%'",1364799660.36108,alspaugh,2.00,2013-04-01T00:01:00.035-0700
+historical,864000.000000000,1364799742.000000000,1363935742.000000000,search index=pan_logs src_ip=10.101.10.*  NOT deny OR block | dedup dest | lookup dnsLookup src | fillnull value='NO DNS' | eventstats count AS total by src,1364799742.36109,alspaugh,2.25,2013-04-01T00:02:22.106-0700
+historical,259200.000000000,1364799742.000000000,1364540542.000000000,search index=email,1364799742.36110,alspaugh,4.72,2013-04-01T00:02:22.105-0700
+historical,,N/A,1364540542.000000000,search index=pan_logs src_ip=10.101.10.*  NOT deny OR block | dedup dest | lookup dnsLookup src | fillnull value='NO DNS' | eventstats count AS total by src,1364799742.36111,alspaugh,4.41,2013-04-01T00:02:22.108-0700
+historical,14400.000000000,1364799742.000000000,1364785342.000000000,"search foo=3 bar=5 | table user, foo, bar",1364799742.36112,alspaugh,1.94,2013-04-01T00:02:22.106-0700

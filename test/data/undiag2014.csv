@@ -1,0 +1,11 @@
+case_id,search_type,is_realtime,search_id,user,search,savedsearch_name,search_et,search_lt,range,total_run_time,_time
+case_123456,adhoc,false,1389613653.325,alspaugh,"search foo | search bar",,N/A,N/A,,0.54,2014-01-13T03:47:33.910-0800
+case_123456,scheduled,false,1389613660.326,alspaugh,"search sourcetype=logs 'error' | stats count(f) by b",,N/A,N/A,,0.69,2014-01-13T03:47:40.084-0800
+case_123456,scheduled,false,1389613931.328,alspaugh,"search 404 | stats count",,N/A,N/A,,5.53,2014-01-13T03:52:11.204-0800
+case_123456,adhoc,false,1389614207.329,alspaugh,"search index=os | eval duration=hours/24",,N/A,N/A,,0.45,2014-01-13T03:56:47.748-0800
+case_123456,adhoc,false,1389614222.330,alspaugh,"| inputlookup visitors | eval visitor_conversion_rate_buyers_only = tostring(round(Transactions/visitors_with_transactions*100, 2)).'%'",,N/A,N/A,,0.44,2014-01-13T03:57:02.628-0800
+case_123456,adhoc,false,1389614236.331,alspaugh,"search index=pan_logs src_ip=10.101.10.*  NOT deny OR block | dedup dest | lookup dnsLookup src | fillnull value='NO DNS' | eventstats count AS total by src",,N/A,N/A,,0.88,2014-01-13T03:57:16.772-0800
+case_123456,adhoc,false,1389614284.332,alspaugh,"search index=email",,N/A,N/A,,0.54,2014-01-13T03:58:04.223-0800
+case_123456,scheduled,false,1389614315.333,alspaugh,"search index=pan_logs src_ip=10.101.10.*  NOT deny OR block | dedup dest | lookup dnsLookup src | fillnull value='NO DNS' | eventstats count AS total by src",,N/A,N/A,,0.51,2014-01-13T03:58:35.150-0800
+case_123456,scheduled,false,1389614343.334,alspaugh,"search foo=3 bar=5 | table user, foo, bar",,N/A,N/A,,6.28,2014-01-13T03:59:03.718-0800
+case_123456,scheduled,false,1389702932.341,alspaugh,"search index=app | top client by region",,N/A,N/A,,0.97,2014-01-14T04:35:32.051-0800
