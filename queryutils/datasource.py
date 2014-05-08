@@ -35,9 +35,9 @@ logger = get_logger("queryutils")
 
 class Version:
 
-    UNDIAG_2012 = "undiag_2012"
+    DIAG_2012 = "diag_2012"
     STORM_2013 = "storm_2013"
-    UNDIAG_2014 = "undiag_2014"
+    DIAG_2014 = "diag_2014"
 
 
 class DataSource(object):
@@ -301,14 +301,14 @@ class Files(DataSource):
             self.extract_sessions_from_user(user)
             yield user
 
-    def remove_noninteractive_queries_by_search_type(self, user, version=Version.UNDIAG_2014):
-        if version == Version.UNDIAG_2014:
+    def remove_noninteractive_queries_by_search_type(self, user, version=Version.DIAG_2014):
+        if version == Version.DIAG_2014:
             handgenerated = "adhoc"
             user.noninteractive_queries = [query for query in user.queries 
                 if query.search_type != handgenerated or self.suspicious(query)]
             user.interactive_queries = [query for query in user.queries 
                 if query.search_type == handgenerated and not self.suspicious(query)]
-        elif version in [Version.UNDIAG_2012, Version.STORM_2013]:
+        elif version in [Version.DIAG_2012, Version.STORM_2013]:
             handgenerated = "historical"
             user.noninteractive_queries = [query for query in user.queries if query.search_type != handgenerated]
             user.interactive_queries = [query for query in user.queries if query.search_type == handgenerated]
