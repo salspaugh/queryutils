@@ -33,7 +33,8 @@ def get_users_from_file(filename):
 def get_users_from_directory(limit=50*BYTES_IN_MB):
     raw_data_files = get_json_files(limit=limit)
     for f in raw_data_files:
-        return get_users_from_file(f)
+        for user in get_users_from_file(f):
+            yield user
 
 def get_json_files(dir, limit=1000*BYTES_IN_MB):
     json_files = []

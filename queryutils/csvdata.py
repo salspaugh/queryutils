@@ -117,7 +117,8 @@ def get_users_from_file(filename):
 def get_users_from_directory(directory, limit=LIMIT):
     raw_data_files = get_csv_files(directory, limit=limit)
     for f in raw_data_files:
-        yield get_users_from_file(f)
+        for user in get_users_from_file(f):
+            yield user
 
 def get_csv_files(dir, limit=LIMIT):
     csv_files = []

@@ -341,7 +341,7 @@ class Files(DataSource):
                 prev_time = curr_time
             query.delta = curr_time - prev_time
             if query.delta > NEW_SESSION_THRESH_SECS:
-                update_session_duration(user.sessions[session_id])
+                self.update_session_duration(user.sessions[session_id])
                 session_id += 1
                 session = Session(session_id, user)
                 user.sessions[session_id] = session

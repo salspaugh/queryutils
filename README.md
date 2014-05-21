@@ -50,7 +50,9 @@ to set up a SQLite3 test database like the one already checked in, run:
 
 This creates a SQLite3 database in named sqlite3.db and load four tables
 for your querying convenience. There are also scripts that demonstrate how
-to load a Postgres database from the query logs.
+to load a Postgres database from the query logs. If you use Postgres, you
+probably also want to set up the indices as shown in 
+`./scripts/setup_indices_postgres.sql`.
 
 4. *Optional:* Set up the test databases using the scripts in the scripts
 directory and run the tests to make sure everything is working:
