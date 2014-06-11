@@ -8,6 +8,7 @@ CREATE TABLE queries (
     time DOUBLE PRECISION,
     
     is_interactive BOOLEAN,
+    is_suspicious BOOLEAN,
     execution_time DOUBLE PRECISION,
     earliest_event DOUBLE PRECISION,
     latest_event DOUBLE PRECISION,

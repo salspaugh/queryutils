@@ -1,4 +1,70 @@
 from json import JSONEncoder
+from numpy import ceil, floor, histogram, log
+
+EPSILON = 1e-4
+ENTROPY_NBUCKETS = 1e4
+MAX_INTERVAL = 1e6 # TODO: This shouldn't be hard-coded.
+NCHARS = 100
+
+def wrap_text(text):
+    current = text
+    wrapped = []
+    while len(current) >= NCHARS:
+        wrapped.append(current[:NCHARS])
+        current = current[NCHARS:]
+    wrapped.append(current)
+    return "\n\t\t\t\t\t".join(wrapped)
+
+class Text(object):
+
+    def __init__(self, text, uid):
+        self.text = text
+        self.selected_user = uid
+        self.all_occurrences = []
+        self.all_users = []
+        self.selected_occurrences = []
+        self.interarrivals = []
+        self.id = 0
+
+    def number_of_all_occurrences(self):
+        return len(self.all_occurrences)
+
+    def distinct_users(self):
+        return len(set(self.all_users))
+
+    def get_interarrivals(self):
+        interarrivals = []
+        self.selected_occurrences.sort(key=lambda x: x.time)
+        for idx, query in enumerate(self.selected_occurrences[:-1]):
+            curr = query
+            next = self.selected_occurrences[idx+1]
+            interval = next.time - curr.time
+            interarrivals.append(interval)
+        return interarrivals
+
+    def interarrival_entropy(self):
+        if len(self.interarrivals) == 0:
+            self.interarrivals = self.get_interarrivals()
+        if len(self.interarrivals) < 2:
+            return 0.
+        print self.interarrivals
+        hist, _ = histogram(self.interarrivals, bins=ENTROPY_NBUCKETS, range=(0., MAX_INTERVAL), normed=True)
+        return -1*sum([(p)*log((p+EPSILON)) for p in hist])
+
+    def __str__(self):
+        return """
+        Text: %s
+        This user: %s
+        All occurrences: %d
+        Distinct users: %d
+        Entropy: %f
+        Interarrivals: %s
+        """ % (wrap_text(self.text), 
+            self.selected_user, 
+            self.number_of_all_occurrences(),
+            self.distinct_users(),
+            self.interarrival_entropy(),
+            wrap_text(str(self.interarrivals)))
 
 class Query(object):
 
@@ -9,6 +75,7 @@ class Query(object):
 
         self.user = None
         self.is_interactive = None
+        self.is_suspicious = False
         self.parsetree = None
 
         self.execution_time = None

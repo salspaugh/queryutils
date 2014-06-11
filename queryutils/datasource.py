@@ -2,7 +2,7 @@ from logging import getLogger as get_logger
 from os.path import isfile, isdir
 from queryutils.user import User
 from queryutils.session import Session
-from queryutils.query import Query
+from queryutils.query import Query, Text
 from queryutils.parse import parse_query
 from splparser.parsetree import ParseTreeNode
 
@@ -46,13 +46,16 @@ class DataSource(object):
         pass
 
     def connect(self):
-        pass
+        raise NotImplementedError()
 
     def close(self):
-        pass
+        raise NotImplementedError()
 
     def commit(self):
-        pass
+        raise NotImplementedError()
+
+    def get_interactive_queries(self):
+        raise NotImplementedError()
 
     def extract_command_stage(self, parsetree, commands):
         if parsetree is not None:
@@ -63,6 +66,32 @@ class DataSource(object):
                     if (len(commands) == 0 and node.children[0].role == "COMMAND") or \
                         (node.children[0].role == "COMMAND" and node.children[0].raw in commands):
                         yield node, count
+
+    def get_suspicious_texts(self):
+        groups = {}
+        for query in self.get_interactive_queries():
+            if not query.text in groups:
+                groups[query.text] = {}
+            if not query.user_id in groups[query.text]:
+                groups[query.text][query.user_id] = []
+            groups[query.text][query.user_id].append(query)
+        texts = []
+        for (stmt, users) in groups.iteritems():
+            for (uid, queries) in users.iteritems():
+                text = Text(stmt, uid)
+                text.all_occurrences = queries
+                text.all_users = users.keys()
+                print text.text
+                print text.all_users
+                print
+                text.selected_occurrences = [q for q in queries if q.user_id == uid]
+                text.id = len(texts)
+                texts.append(text)
+        for text in texts:
+            if len(text.all_occurrences) == 1:
+                continue
+            text.interarrivals = text.get_interarrivals()
+            yield text
 
     def get_unique_stages(self, commands):
         seen = set()
@@ -131,11 +160,11 @@ class Database(DataSource):
  
     def get_queries(self):
         self.connect()
-        cursor = self.execute("SELECT queries.id, text, time, is_interactive, search_type, \
+        cursor = self.execute("SELECT queries.id, text, time, is_interactive, is_suspicious, search_type, \
                         earliest_event, latest_event, range, is_realtime, \
                         splunk_search_id, execution_time, saved_search_name, \
                         user_id, session_id FROM queries")
-        for (qid, text, time, interactive, search_type, ev, lv, r, realtime, 
+        for (qid, text, time, interactive, suspicious, search_type, ev, lv, r, realtime, 
             splid, execution_time, spl_name, uid, sid) in cursor.fetchall():
             q = Query(text, time)
             q.query_id = qid
@@ -150,6 +179,35 @@ class Database(DataSource):
             q.execution_time = execution_time
             q.saved_search_name = spl_name
             q.is_interactive = interactive
+            q.is_suspicious = suspicious
+            yield q
+        self.close()   
+
+    def get_interactive_queries(self):
+        self.connect()
+        sqlquery = "SELECT queries.id, text, time, is_interactive, is_suspicious, search_type, \
+                            earliest_event, latest_event, range, is_realtime, \
+                            splunk_search_id, execution_time, saved_search_name, \
+                            user_id, session_id \
+                    FROM queries \
+                    WHERE is_interactive=%s" % self.wildcard
+        cursor = self.execute(sqlquery, (True, ))
+        for (qid, text, time, interactive, suspicious, search_type, ev, lv, r, realtime, 
+            splid, execution_time, spl_name, uid, sid) in cursor.fetchall():
+            q = Query(text, time)
+            q.query_id = qid
+            q.user_id = uid
+            q.session_id = sid
+            q.search_type = search_type
+            q.earliest_event = ev
+            q.latest_event = lv
+            q.range = r
+            q.is_realtime = realtime
+            q.splunk_search_id = splid
+            q.execution_time = execution_time
+            q.saved_search_name = spl_name
+            q.is_interactive = interactive
+            q.is_suspicious = suspicious
             yield q
         self.close()   
 
@@ -178,12 +236,12 @@ class Database(DataSource):
                 sessions[sid] = Session(sid, user)
                 sessions[sid].type = type 
                 user.sessions[sid] = sessions[sid]
-                qcursor = self.execute("SELECT queries.id, text, time, is_interactive, search_type, \
+                qcursor = self.execute("SELECT queries.id, text, time, is_interactive, is_suspicious, search_type, \
                                 earliest_event, latest_event, range, is_realtime, \
                                 splunk_search_id, execution_time, saved_search_name, \
                                 user_id, session_id, parsetree FROM queries, parsetrees \
                                 WHERE queries.id = parsetrees.query_id AND session_id = " + self.wildcard, (sid,))
-                for (qid, text, time, auto, search_type, ev, lv, r, realtime, 
+                for (qid, text, time, auto, suspicious, search_type, ev, lv, r, realtime, 
                     splid, execution_time, spl_name, uid, sid, parsetree) in qcursor.fetchall():
                     session = sessions.get(sid, None)
                     q = Query(text, time)
@@ -201,6 +259,7 @@ class Database(DataSource):
                     q.execution_time = execution_time
                     q.saved_search_name = spl_name
                     q.is_interactive = auto
+                    q.is_suspicious = suspicious
                     q.parsetree = ParseTreeNode.loads(parsetree)
                     q.session = session
                     if session is not None:
@@ -319,7 +378,7 @@ class Files(DataSource):
         for query in user.interactive_queries:
             query.is_interactive = True
 
-    def suspicious(self, query):
+    def suspicious(self, query): # TODO: Update this function!
         q = query.text.strip().lower().replace(" ", "")
         return q == "| metadata type=sourcetypes | search totalcount > 0".replace(" ", "") or \
             q == "|history | head 2000 | search event_count>0 or result_count>0 | dedup search | table search".replace(" ", "") or \
