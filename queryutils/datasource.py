@@ -24,7 +24,11 @@ Functions for getting data from sources:
     
     get_users_with_queries()
     get_users_with_sessions()
-    
+   
+    get_interactive_queries() * 
+    get_possibly_suspicious_texts() *
+
+    * = Partially implemented
 """
 
 NEW_SESSION_THRESH_SECS = 30. * 60.
@@ -32,6 +36,37 @@ REPEAT_THRESH_SECS = 1.
 
 logger = get_logger("queryutils")
 
+SUSPICIOUS_QUERIES = [
+    "| metadata type=sourcetypes | search totalCount > 0",
+    "|history | head 2000 | search event_count>0 OR result_count>0 | dedup search | table search",
+    #"`get_splunk_servers` | fields sos_server server_role _time | inputlookup append=true splunk_servers_cache | `curate_splunk_servers_cache` | outputlookup splunk_servers_cache",
+    #"`get_splunk_instances_info` | inputlookup append=true splunk_instances_info | stats first(*) AS * by sos_server | outputlookup splunk_instances_info",
+    #'| metadata type=sourcetypes | search totalCount > 0 | table sourcetype totalCount recentTime | fieldformat totalCount=tostring(totalCount, "commas") | fieldformat recentTime=strftime(recentTime, "%Y-%m-%dT%H:%M:%S.%Q%:z")',
+    #'| metadata type=hosts | search totalCount > 0 | table host totalCount recentTime | fieldformat totalCount=tostring(totalCount, "commas") | fieldformat recentTime=strftime(recentTime, "%Y-%m-%dT%H:%M:%S.%Q%:z")',
+    #'| metadata type=sources | search totalCount > 0 | table source totalCount recentTime | fieldformat totalCount=tostring(totalCount, "commas") | fieldformat recentTime=strftime(recentTime, "%Y-%m-%dT%H:%M:%S.%Q%:z")',
+    #'summarize override=partial timespan= max_summary_size=52428800 max_summary_ratio=0.1 max_disabled_buckets=2 max_time=3600 [ search `dm_license_summary_10m` ]',
+    #'summarize override=partial timespan= max_summary_size=52428800 max_summary_ratio=0.1 max_disabled_buckets=2 max_time=3600 [ search `dm_license_summary_10m_by_host` ]',
+    #'summarize override=partial timespan= max_summary_size=52428800 max_summary_ratio=0.1 max_disabled_buckets=2 max_time=3600 [ search `dm_license_summary_10m_by_sourcetype` ]',
+    #'summarize override=partial timespan= max_summary_size=52428800 max_summary_ratio=0.1 max_disabled_buckets=2 max_time=3600 [ search `dm_license_summary_10m_by_pool` ]',
+    #'typeahead prefix="index" max_time="1" count="50" use_cache=1',
+    #'summarize override=partial timespan= max_summary_size=52428800 max_summary_ratio=0.1 max_disabled_buckets=2 max_time=3600 [ search `dm_license_summary_10m_by_indexer` ]',
+    #'search `dm_index_week_over_week`',
+    #'summarize override=partial timespan= max_summary_size=52428800 max_summary_ratio=0.1 max_disabled_buckets=2 max_time=3600 [ search `dm_license_summary_10m_by_forwarder` ]',
+    #'summarize override=partial timespan= max_summary_size=52428800 max_summary_ratio=0.1 max_disabled_buckets=2 max_time=3600 [ search `sources_summary_10m` ]',
+    #'search `dm_tcpin_today_vs_last_week`',
+    #'search `dm_index_today_vs_last_week`',
+    #'summarize override=partial timespan= max_summary_size=52428800 max_summary_ratio=0.1 max_disabled_buckets=2 max_time=3600 [ search `sourcetypes_summary_10m` ]',
+    #'summarize override=partial timespan= max_summary_size=52428800 max_summary_ratio=0.1 max_disabled_buckets=2 max_time=3600 [ search `pools_summary_10m` ]',
+    #'summarize override=partial timespan= max_summary_size=52428800 max_summary_ratio=0.1 max_disabled_buckets=2 max_time=3600 [ search `dm_license_summary_10m_by_source` ]',
+    #'| rest splunk_server=local /services/licenser/messages | where (category=="license_window" OR category=="pool_over_quota") AND create_time >= now() - (30 * 86400) | rename pool_id AS pool | eval warning_day=if(category=="pool_over_quota","(".strftime(create_time,"%B %e, %Y").")",strftime(create_time-43200,"%B %e, %Y")) | fields pool warning_day | join outer pool [rest splunk_server=local /services/licenser/slaves | mvexpand active_pool_ids | eval slave_name=label | eval pool=active_pool_ids | fields pool slave_name | stats values(slave_name) as "members" by pool] | join outer pool [rest splunk_server=local /services/licenser/pools | eval pool=title | eval quota=if(isnull(effective_quota),quota,effective_quota) | eval quotaGB=round(quota/1024/1024/1024,3) | fields pool stack_id, quotaGB] | stats first(pool) as "Pool" first(stack_id) as "Stack ID" first(members) as "Current Members" first(quotaGB) as "Current Quota (GB)" values(warning_day) AS "Warning Days - (Soft)/Hard" by pool | fields - pool',
+    #'search index=network source="/apps/data/network/raw/logs/syslog" "%ILPOWER-7-DETECT" | top hostname limit="40" pgm_group INT_5 | rename INT_5 AS Interface | fields - percent',
+    #'| rest splunk_server=local /services/licenser/pools | rename title AS Pool | search [rest splunk_server=local /services/licenser/groups | search is_active=1 | eval stack_id=stack_ids | fields stack_id] | eval quota=if(isnull(effective_quota),quota,effective_quota) | eval Used=round(used_bytes/1024/1024/1024, 3) | eval Quota=round(quota/1024/1024/1024, 3)| fields Pool Used Quota',
+    #'| rest splunk_server=local /services/licenser/pools | rename title AS Pool | search [rest splunk_server=local /services/licenser/groups | search is_active=1 | eval stack_id=stack_ids | fields stack_id] | eval quota=if(isnull(effective_quota),quota,effective_quota) | eval "% used"=round(used_bytes/quota*100,2) | fields Pool "% used"',
+    #'| rest splunk_server=local /services/licenser/pools | rename title AS pool | search [rest splunk_server=local /services/licenser/groups | search is_active=1 | eval stack_id=stack_ids | fields stack_id] | eval name=pool | eval value="pool=". pool | table name value',
+    #'| rest splunk_server=local /services/licenser/pools | rename title AS Pool | search [rest splunk_server=local /services/licenser/groups | search is_active=1 | eval stack_id=stack_ids | fields stack_id] | join type=outer stack_id [rest splunk_server=local /services/licenser/stacks | eval stack_id=title | eval stack_quota=quota | fields stack_id stack_quota] | stats sum(used_bytes) as used max(stack_quota) as total | eval usedGB=round(used/1024/1024/1024,3) | eval totalGB=round(total/1024/1024/1024,3) | eval gauge_base=0 | eval gauge_danger=totalGB*0.8 | eval gauge_top=totalGB+0.001 | gauge usedGB gauge_base gauge_danger totalGB gauge_top',
+    #'search index=network SCOPE ALARM',
+    #'| rest splunk_server=local /services/licenser/slaves | mvexpand active_pool_ids | where warning_count>0 | eval pool=active_pool_ids | join type=outer pool [rest splunk_server=local /services/licenser/pools | eval pool=title | fields pool stack_id] | eval in_violation=if(warning_count>4 OR (warning_count>2 AND stack_id=="free"),"yes","no") | fields label, title, pool, warning_count, in_violation | fields - _timediff | rename label as "Slave" title as "GUID" pool as "Pool" warning_count as "Hard Warnings" in_violation AS "In Violation?"',
+]
 
 class Version:
 
@@ -67,7 +102,7 @@ class DataSource(object):
                         (node.children[0].role == "COMMAND" and node.children[0].raw in commands):
                         yield node, count
 
-    def get_suspicious_texts(self):
+    def get_possibly_suspicious_texts(self):
         groups = {}
         for query in self.get_interactive_queries():
             if not query.text in groups:
@@ -81,9 +116,6 @@ class DataSource(object):
                 text = Text(stmt, uid)
                 text.all_occurrences = queries
                 text.all_users = users.keys()
-                print text.text
-                print text.all_users
-                print
                 text.selected_occurrences = [q for q in queries if q.user_id == uid]
                 text.id = len(texts)
                 texts.append(text)
@@ -336,8 +368,10 @@ class Files(DataSource):
                 yield parsetree
 
     def get_sessions(self):
+        texts = self.get_possibly_suspicious_texts()
         for user in self.get_users():
             self.remove_noninteractive_queries_by_search_type(user, version=self.version)
+            user.suspicious = self.remove_suspicious_queries(user, texts)
             self.extract_sessions_from_user(user)
             for (num, session) in user.sessions.iteritems():
                 yield session
@@ -355,18 +389,18 @@ class Files(DataSource):
             yield user
 
     def get_users_with_sessions(self):
+        texts = self.get_possibly_suspicious_texts()
         for user in self.get_users():
             self.remove_noninteractive_queries_by_search_type(user, version=self.version)
+            user.suspicious = self.remove_suspicious_queries(user, texts)
             self.extract_sessions_from_user(user)
             yield user
 
     def remove_noninteractive_queries_by_search_type(self, user, version=Version.DIAG_2014):
         if version == Version.DIAG_2014:
             handgenerated = "adhoc"
-            user.noninteractive_queries = [query for query in user.queries 
-                if query.search_type != handgenerated or self.suspicious(query)]
-            user.interactive_queries = [query for query in user.queries 
-                if query.search_type == handgenerated and not self.suspicious(query)]
+            user.noninteractive_queries = [query for query in user.queries if query.search_type != handgenerated]
+            user.interactive_queries = [query for query in user.queries if query.search_type == handgenerated]
         elif version in [Version.DIAG_2012, Version.STORM_2013]:
             handgenerated = "historical"
             user.noninteractive_queries = [query for query in user.queries if query.search_type != handgenerated]
@@ -378,13 +412,8 @@ class Files(DataSource):
         for query in user.interactive_queries:
             query.is_interactive = True
 
-    def suspicious(self, query): # TODO: Update this function!
-        q = query.text.strip().lower().replace(" ", "")
-        return q == "| metadata type=sourcetypes | search totalcount > 0".replace(" ", "") or \
-            q == "|history | head 2000 | search event_count>0 or result_count>0 | dedup search | table search".replace(" ", "") or \
-            (q[:15] == "typeaheadprefix") or \
-            q.find("| metadata type=sourcetypes | search totalcount > 0".replace(" ", "")) > -1 or \
-            q == "| inputlookup splunk_servers_cache | sort sort_rank".replace(" ", "")
+    def remove_suspicious_queries(self, user, texts):
+        return True
 
     def extract_sessions_from_user(self, user):
         if len(user.interactive_queries) == 0:
