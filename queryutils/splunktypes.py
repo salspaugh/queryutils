@@ -1,5 +1,5 @@
 from splparser.parsetree import ParseTreeNode
-
+from parse import tokenize_query
 
 category = {
     "abstract": "Miscellaneous",
@@ -96,13 +96,38 @@ category = {
     "xmlkv": "Augment",
 }
 
+def lookup_categories(querystring):
+    tokens = tokenize_query(querystring)
+    categories = []
+    for idx, token in enumerate(tokens):
+        if token.type == "USER_DEFINED_COMMAND":
+            categories.append("User-Defined")
+        elif token.type == "MACRO":
+            categories.append("Macro")
+        elif token.type not in ["ARGS", "PIPE", "LBRACKET", "RBRACKET"]:
+            command = token.value
+            # Note: This is an imperfect way to detect this.
+            # See below for an example.
+            if token.value == "addtotals": 
+                if len(tokens) == idx+1:
+                    command = "addtotals row"
+                elif tokens[idx+1].value.lower()[:3] == "row":
+                    command = "addtotals row"
+                else:
+                    command = "addtotals col"
+            try:
+                categories.append(lookup_category(command))
+            except KeyError as e:
+                print e, token
+    return categories
 
-def lookup_category(stagenode):
-    if not isinstance(stagenode, ParseTreeNode):
-        return category[stagenode]
-    command = stagenode.children[0].raw
+
+def lookup_category(node_or_string):
+    if not isinstance(node_or_string, ParseTreeNode):
+        return category[node_or_string]
+    command = node_or_string.children[0].raw
     if command == "addtotals":
-        command = detect_addtotals_type(stagenode)
+        command = detect_addtotals_type(node_or_string)
     return category[command]
 
 

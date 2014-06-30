@@ -29,6 +29,8 @@ Functions for getting data from sources:
     get_possibly_suspicious_texts() *
 
     * = Partially implemented
+
+TODO: Make sure these all return the same things for each class.
 """
 
 NEW_SESSION_THRESH_SECS = 30. * 60.
@@ -189,7 +191,7 @@ class Database(DataSource):
             user.user_type = user_type
             yield user
         self.close()   
- 
+
     def get_queries(self):
         self.connect()
         cursor = self.execute("SELECT queries.id, text, time, is_interactive, is_suspicious, search_type, \
@@ -302,7 +304,51 @@ class Database(DataSource):
             if len(session.queries) > 1:
                 yield session
         self.close()   
-
+    
+    def get_users_with_queries(self):
+        self.connect()
+        users = {}
+        ucursor = self.execute("SELECT id, name, case_id, user_type FROM users LIMIT 20")
+        for (uid, name, case_id, user_type) in ucursor.fetchall():
+            logger.debug("[data] - Fetched user: " + name)
+            user = User(name)
+            user.case_id = case_id
+            user.user_type = user_type
+            #qcursor = self.execute("SELECT queries.id, text, time, is_interactive, is_suspicious, search_type, \
+            #                earliest_event, latest_event, range, is_realtime, \
+            #                splunk_search_id, execution_time, saved_search_name, \
+            #                user_id, session_id, parsetree FROM queries, parsetrees \
+            #                WHERE queries.id = parsetrees.query_id AND user_id = " + self.wildcard, (uid,))
+            qcursor = self.execute("SELECT queries.id, text, time, is_interactive, is_suspicious, search_type, \
+                            earliest_event, latest_event, range, is_realtime, \
+                            splunk_search_id, execution_time, saved_search_name, \
+                            user_id, session_id FROM queries \
+                            WHERE user_id = " + self.wildcard, (uid,))
+            for (qid, text, time, auto, suspicious, search_type, ev, lv, r, realtime, 
+                splid, execution_time, spl_name, uid, sid) in qcursor.fetchall():
+                #splid, execution_time, spl_name, uid, sid, parsetree) in qcursor.fetchall():
+                q = Query(text, time)
+                q.query_id = qid
+                q.user_id = uid
+                q.user = user
+                q.session_id = sid
+                q.search_type = search_type
+                q.earliest_event = ev
+                q.latest_event = lv
+                q.range = r
+                q.is_realtime = realtime
+                q.splunk_search_id = splid
+                q.execution_time = execution_time
+                q.saved_search_name = spl_name
+                q.is_interactive = auto
+                q.is_suspicious = suspicious
+                #q.parsetree = ParseTreeNode.loads(parsetree)
+                user.queries.append(q)
+            user.interactive_queries = [q for q in user.queries if q.is_interactive]
+            user.noninteractive_queries = [q for q in user.queries if not q.is_interactive]
+            yield user
+        self.close()   
+    
 
 class PostgresDB(Database):
 
