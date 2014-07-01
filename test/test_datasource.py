@@ -1,6 +1,8 @@
 import unittest
 from os import path
-from queryutils.datasource import Version, CSVFiles, JSONFiles, PostgresDB, SQLite3DB
+from queryutils.databases import PostgresDB, SQLite3DB
+from queryutils.files import CSVFiles, JSONFiles
+from queryutils.versions import Version
 from queryutils.user import User
 from queryutils.session import Session
 from queryutils.query import Query
@@ -76,8 +78,8 @@ class CSVFilesTestCase(DataSourceTestCase, unittest.TestCase):
 
     def setUp(self):
         thisdir = path.dirname(path.realpath(__file__))
-        self.path = path.join(thisdir, "data/undiag2014.csv")
-        self.version = Version.UNDIAG_2014
+        self.path = path.join(thisdir, "data/diag2014.csv")
+        self.version = Version.DIAG_2014
         self.args = [self.path, self.version]
         self.source = CSVFiles
 
@@ -89,8 +91,8 @@ class JSONFilesTestCase(DataSourceTestCase, unittest.TestCase):
 
     def setUp(self):
         thisdir = path.dirname(path.realpath(__file__))
-        self.path = path.join(thisdir, "data/undiag2012.json")
-        self.version = Version.UNDIAG_2012
+        self.path = path.join(thisdir, "data/diag2012.json")
+        self.version = Version.DIAG_2012
         self.args = [self.path, self.version]
         self.source = JSONFiles
 

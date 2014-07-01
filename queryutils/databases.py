@@ -36,8 +36,8 @@ class Database(DataSource):
         ucursor = self.execute("SELECT id, name, case_id, user_type FROM users")
         for row in ucursor.fetchall():
             d = { k:row[k] for k in row.keys() }
-            logger.debug("[data] - Fetched user: " + name)
-            user = User(name)
+            logger.debug("[data] - Fetched user: " + row["name"])
+            user = User(row["name"])
             user.__dict__.update(d)
             yield user 
         self.close()   
@@ -59,10 +59,10 @@ class Database(DataSource):
                             FROM queries")
         for row in qcursor.fetchall():
             d = { k:row[k] for k in row.keys() }
-            q = Query(text, time)
+            q = Query(row["text"], row["time"])
             q.__dict__.update(d)
             if parsed:
-                q.parsetree = ParseTreeNode.loads(parsetree)
+                q.parsetree = ParseTreeNode.loads(row["parsetree"])
             yield q
         self.close()
 
@@ -85,35 +85,39 @@ class Database(DataSource):
         cursor = self.execute(sqlquery, (True, ))
         for row in qcursor.fetchall():
             d = { k:row[k] for k in row.keys() }
-            q = Query(text, time)
+            q = Query(row["text"], row["time"])
             q.__dict__.update(d)
             if parsed:
-                q.parsetree = ParseTreeNode.loads(parsetree)
+                q.parsetree = ParseTreeNode.loads(row["parsetree"])
             yield q
         self.close()   
 
     def get_parsetrees(self):
         self.connect()
         cursor = self.execute("SELECT parsetree, query_id FROM parsetrees")
-        for (parsetree, query_id) in cursor.fetchall():            
-            p = ParseTreeNode.loads(parsetree)
-            p.query_id = query_id
-            yield p
+        for row in cursor.fetchall():
+            try:
+                p = ParseTreeNode.loads(row["parsetree"])
+                p.query_id = row["query_id"]
+                yield p
+            except ValueError as e:
+                print e
+                print parsetree
         self.close()   
 
-    def get_session_from_user(uid):
+    def get_session_from_user(self, uid):
         self.connect()
         scursor = self.execute("SELECT id, user_id, session_type \
                                 FROM sessions \
                                 WHERE user_id = " + self.wildcard, (uid,))
         for row in scursor.fetchall():
             d = { k:row[k] for k in row.keys() }
-            session = Session(sid, user)
+            session = Session(row["id"], row["user_id"])
             session.__dict__.update(d)
             yield session
         self.close() 
 
-    def get_query_in_session(sid, parsed=False):
+    def get_query_in_session(self, sid, parsed=False):
         self.connect()
         if parsed:
             qcursor = self.execute("SELECT id, text, time, is_interactive, is_suspicious, search_type, \
@@ -131,14 +135,14 @@ class Database(DataSource):
                             WHERE session_id = " + self.wildcard, (sid,))
         for row in qcursor.fetchall():
             d = { k:row[k] for k in row.keys() }
-            q = Query(text, time)
+            q = Query(row["text"], row["time"])
             q.__dict__.update(d)
             if parsed:
-                q.parsetree = ParseTreeNode.loads(parsetree)
+                q.parsetree = ParseTreeNode.loads(row["parsetree"])
             yield q
         self.close()
 
-    def get_query_from_user(uid, parsed=False):
+    def get_query_from_user(self, uid, parsed=False):
         self.connect()
         if parsed: # TODO: Replace with "SELECT *..."?
             qcursor = self.execute("SELECT id, text, time, is_interactive, is_suspicious, search_type, \
@@ -156,7 +160,7 @@ class Database(DataSource):
                             WHERE user_id = " + self.wildcard, (uid,))
         for row in qcursor.fetchall():
             d = { k:row[k] for k in row.keys() }
-            q = Query(text, time)
+            q = Query(row["text"], row["time"])
             q.__dict__.update(d)
             if parsed:
                 q.parsetree = ParseTreeNode.loads(row["parsetree"])
@@ -168,8 +172,8 @@ class Database(DataSource):
         sessions = {}
         for user in self.get_users():
             for session in self.get_session_from_user(user.id):
-                sessions[sid] = session
-                user.sessions[sid] = session
+                sessions[session.id] = session
+                user.sessions[session.id] = session
                 for query in self.get_query_in_session(session.id, parsed=parsed):
                     query.session = session
                     query.user = user

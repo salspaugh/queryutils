@@ -3,6 +3,7 @@ from os.path import isfile, isdir
 from queryutils.session import Session
 from queryutils.parse import parse_query
 from queryutils.versions import Version
+from queryutils.source import DataSource
 
 NEW_SESSION_THRESH_SECS = 30. * 60.
 

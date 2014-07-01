@@ -4,6 +4,7 @@ CREATE TABLE queries (
     text TEXT NOT NULL,
     time REAL,
     is_interactive INTEGER,
+    is_suspicious INTEGER,
     execution_time REAL,
     earliest_event REAL,
     latest_event REAL,
