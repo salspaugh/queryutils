@@ -1,12 +1,13 @@
+from collections import defaultdict
 from logging import getLogger as get_logger
-from queryutils.query import Text
+from queryutils.query import QueryGroup
 
 logger = get_logger("queryutils")
 
 class DataSource(object):
     
     def __init__(self):
-        pass
+        logger.debug("Initialized data source.")
 
     def connect(self):
         """
@@ -73,28 +74,32 @@ class DataSource(object):
                         (node.children[0].role == "COMMAND" and node.children[0].raw in commands):
                         yield node, count
 
-    def get_possibly_suspicious_texts(self):
-        groups = {}
+    def get_query_groups(self, multiple=True):
+        #users = { user.id: user for users in self.get_users() }
+        iter = 0
         for query in self.get_interactive_queries():
-            if not query.text in groups:
-                groups[query.text] = {}
-            if not query.user_id in groups[query.text]:
-                groups[query.text][query.user_id] = []
-            groups[query.text][query.user_id].append(query)
-        texts = []
-        for (stmt, users) in groups.iteritems():
-            for (uid, queries) in users.iteritems():
-                text = Text(stmt, uid)
-                text.all_occurrences = queries
-                text.all_users = users.keys()
-                text.selected_occurrences = [q for q in queries if q.user_id == uid]
-                text.id = len(texts)
-                texts.append(text)
-        for text in texts:
-            if len(text.all_occurrences) == 1:
+            #query.user = users[query.user_id]
+            query_group = QueryGroup(query)
+            query_group.copies = [q for q in self.get_interactive_queries_with_text(query.text)]
+            if len(query_group.copies) <= 1 and multiple:
+                logger.debug("Query has no copies.")
                 continue
-            text.interarrivals = text.get_interarrivals()
-            yield text
+            yield query_group
+            if iter % 10 == 0:
+                logger.debug("Returned %d query groups." % iter)
+            iter += 1
+            #for copy in query.copies:
+            #    copy.user = users[copy.user_id]
+            
+        #groups = defaultdict(list)
+        #for user in self.get_users_with_queries():
+        #    for query in user.queries:
+        #        groups[query.text].append(query)
+        #for (text, group) in groups.iteritems():
+        #    for query in group:
+        #        qg = QueryGroup(query)
+        #        qg.copies = group
+        #        yield qg
 
     def get_unique_stages(self, commands):
         seen = set()
@@ -111,7 +116,7 @@ class DataSource(object):
                 counter += 1
                 yield stage
             if iter % 10 == 0:
-                logger.debug("[data] - Returned %d objects." % iter)
+                logger.debug("Returned %d unique stages." % iter)
             iter += 1
 
     def get_unique_filters(self):

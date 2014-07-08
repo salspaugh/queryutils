@@ -16,75 +16,87 @@ def wrap_text(text):
     wrapped.append(current)
     return "\n\t\t\t\t\t".join(wrapped)
 
-class Text(object):
+class QueryGroup(object):
 
-    def __init__(self, text, uid):
-        self.text = text
-        self.selected_user = uid
-        self.all_occurrences = []
-        self.all_users = []
-        self.selected_occurrences = []
-        self.interarrivals = []
-        self.id = 0
+    def __init__(self, query):
+        self.query = query
+        self.copies = []
+        self.interarrivals = None
 
-    def number_of_all_occurrences(self):
-        return len(self.all_occurrences)
-    
-    def number_of_selected_occurrences(self):
-        return len(self.selected_occurrences)
+    def copies_this_user(self):
+        return [q for q in self.copies if q.user_id == self.query.user_id]
 
-    def distinct_users(self):
-        return len(set(self.all_users))
+    def number_of_copies(self):
+        return len(self.copies)
 
-    def get_interarrivals(self):
-        interarrivals = []
-        self.selected_occurrences.sort(key=lambda x: x.time)
-        for idx, query in enumerate(self.selected_occurrences[:-1]):
+    def number_of_copies_this_user(self):
+        return len(self.copies_this_user())
+
+    def number_of_distinct_users(self):
+        u = [q.user_id for q in self.copies]
+        return len(set(u))
+
+    def interarrival_intervals(self):
+        intervals = []
+        relevant_queries = self.copies_this_user()
+        relevant_queries.sort(key=lambda x: x.time)
+        for idx, query in enumerate(relevant_queries[:-1]):
             curr = query
-            next = self.selected_occurrences[idx+1]
-            interval = next.time - curr.time
-            interarrivals.append(interval)
-        return interarrivals
+            next = relevant_queries[idx+1]
+            intervals.append(next.time - curr.time)
+        self.interarrivals = intervals
+        return intervals
 
     def interarrival_entropy(self):
-        if len(self.interarrivals) == 0:
-            self.interarrivals = self.get_interarrivals()
-        if len(self.interarrivals) < 2:
+        if self.interarrivals is None:
+            self.interarrivals = self.interarrival_intervals()
+        if len(self.interarrivals) <= 1:
             return 0.
-        print self.interarrivals
-        hist, _ = histogram(self.interarrivals, bins=ENTROPY_NBUCKETS, range=(0., MAX_INTERVAL), normed=True)
+        hist, _ = histogram(self.interarrivals, bins=ENTROPY_NBUCKETS, 
+            range=(0., MAX_INTERVAL), normed=True)
+        # TODO: `normed` is broken, use density, only available in numpy>=?
         return -1*sum([(p)*log((p+EPSILON)) for p in hist])
 
-
-    def periodicity(self):
+    def interarrival_consistency(self):
+        if self.interarrivals is None:
+            self.interarrivals = self.interarrival_intervals()
+        if len(self.interarrivals) <= 1:
+            return 1.
         avg = mean(self.interarrivals)
         scaled = self.interarrivals / avg
         close = [1. if x < 1.1 and x > .9 else 0. for x in scaled]
-        periodicity = mean(close)
-        return periodicity
+        interarrival_consistency = mean(close)
+        return interarrival_consistency
 
-    def clockness(self):
+    def interarrival_clockness(self):
+        if self.interarrivals is None:
+            self.interarrivals = self.interarrival_intervals()
+        if len(self.interarrivals) == 0:
+            return -1. # TODO: What is a reasonable value here?
         rounded = [round(n) for n in self.interarrivals]
-        clocked = [min(n%SECONDS, SECONDS - n%SECONDS)/SECONDS for n in self.interarrivals] 
+        clocked = [min(n%SECONDS, SECONDS - n%SECONDS)/SECONDS 
+            for n in self.interarrivals] 
         return mean(clocked)
 
     def __str__(self):
         return """
-        Text: %s
+        ID: %s
+        Query Text: %s
         This user: %s
-        All occurrences: %d
+        Copies: %d
         Distinct users: %d
         Entropy: %f
-        Periodicity: %f
+        Consistency: %f
         Clockness: %f
         Interarrivals: %s
-        """ % (wrap_text(self.text), 
-            self.selected_user, 
-            self.number_of_all_occurrences(),
-            self.distinct_users(),
+        """ % (str(self.query.id),
+            wrap_text(self.query.text), 
+            self.query.user_id, 
+            self.number_of_copies(),
+            self.number_of_distinct_users(),
             self.interarrival_entropy(),
-            self.periodicity(),
-            self.clockness(),
+            self.interarrival_consistency(),
+            self.interarrival_clockness(),
             wrap_text(str(self.interarrivals)))
 
 class Query(object):

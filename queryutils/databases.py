@@ -1,8 +1,12 @@
+from time import time
+
+start = time()
+
 from logging import getLogger as get_logger
 from queryutils.source import DataSource
 from queryutils.user import User
 from queryutils.session import Session
-from queryutils.query import Query, Text
+from queryutils.query import Query
 from queryutils.parse import parse_query
 from splparser.parsetree import ParseTreeNode
 
@@ -13,7 +17,9 @@ import sqlite3
 NEW_SESSION_THRESH_SECS = 30. * 60.
 REPEAT_THRESH_SECS = 1.
 
+elapsed = time() - start
 logger = get_logger("queryutils")
+logger.debug("Imported in %f seconds." % elapsed)
 
 class Database(DataSource):
 
@@ -36,7 +42,7 @@ class Database(DataSource):
         ucursor = self.execute("SELECT id, name, case_id, user_type FROM users")
         for row in ucursor.fetchall():
             d = { k:row[k] for k in row.keys() }
-            logger.debug("[data] - Fetched user: " + row["name"])
+            logger.debug("Fetched user: " + row["name"])
             user = User(row["name"])
             user.__dict__.update(d)
             yield user 
@@ -66,6 +72,35 @@ class Database(DataSource):
             yield q
         self.close()
 
+    def get_interactive_queries_with_text(self, text):
+        #logger.debug("Getting queries with text %s" % text)
+        #start = time()
+        self.connect()
+        #qcursor = self.execute("SELECT id, text, time, is_interactive, is_suspicious, search_type, \
+        #                earliest_event, latest_event, range, is_realtime, \
+        #                splunk_search_id, execution_time, saved_search_name, \
+        #                user_id, session_id \
+        #                FROM queries \
+        #                WHERE text=%s" % self.wildcard, (text,))
+        qcursor = self.execute("SELECT id, text, time, is_interactive, is_suspicious, search_type, \
+                        earliest_event, latest_event, range, is_realtime, \
+                        splunk_search_id, execution_time, saved_search_name, \
+                        user_id, session_id \
+                        FROM queries \
+                        WHERE is_interactive=%s AND text=%s" % (self.wildcard, self.wildcard), (True, text))
+        #elapsed = time() - start
+        #logger.debug("Grabbed queries with text %s in %f seconds." % (text, elapsed))
+        iter = 0
+        for row in qcursor.fetchall():
+            d = { k:row[k] for k in row.keys() }
+            q = Query(row["text"], row["time"])
+            q.__dict__.update(d)
+            yield q
+            if iter % 10 == 0:
+                logger.debug("Returned %d queries with text '%s.'" % (iter, text))
+            iter += 1
+        self.close()
+
     def get_interactive_queries(self, parsed=False):
         self.connect()
         if parsed:
@@ -83,13 +118,17 @@ class Database(DataSource):
                         FROM queries \
                         WHERE is_interactive=%s" % self.wildcard
         cursor = self.execute(sqlquery, (True, ))
-        for row in qcursor.fetchall():
+        iter = 0
+        for row in cursor.fetchall():
             d = { k:row[k] for k in row.keys() }
             q = Query(row["text"], row["time"])
             q.__dict__.update(d)
             if parsed:
                 q.parsetree = ParseTreeNode.loads(row["parsetree"])
             yield q
+            if iter % 10 == 0:
+                logger.debug("Returned %d interactive queries." % (iter))
+            iter += 1
         self.close()   
 
     def get_parsetrees(self):
@@ -190,7 +229,8 @@ class Database(DataSource):
         self.connect()
         for user in self.get_users():
             for query in self.get_query_from_user(user.id, parsed=parsed):
-                user.queries.append(q)
+                query.user = user
+                user.queries.append(query)
             user.interactive_queries = [q for q in user.queries if q.is_interactive]
             user.noninteractive_queries = [q for q in user.queries if not q.is_interactive]
             yield user
@@ -206,11 +246,13 @@ class PostgresDB(Database):
         super(PostgresDB, self).__init__("%s")
 
     def connect(self):
+        if self.connection is not None:
+            return self.connection
         self.connection = psycopg2.connect(database=self.database, user=self.user, password=self.password)
         return self.connection
 
     def execute(self, query, *params):
-        if not self.connection:
+        if self.connection is None:
             self.connect()
         cursor = self.connection.cursor(cursor_factory=RealDictCursor)
         cursor.execute(query, *params)
@@ -224,6 +266,8 @@ class SQLite3DB(Database):
         super(SQLite3DB, self).__init__("?")
 
     def connect(self):
+        if self.connection is not None:
+            return self.connection
         self.connection = sqlite3.connect(self.path)
         self.connection.row_factory = sqlite3.Row
         return self.connection
