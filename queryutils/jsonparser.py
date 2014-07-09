@@ -27,6 +27,8 @@ def get_users_from_file(filename):
             if not username in users:
                 users[username] = user
             users[username].queries.append(query)
+    # TODO: FIXME: This might cause incorrectness if a user's queries span files. 
+    # For the data we have, this is not an issue, since cases never span files.
     for user in users.values():
         yield user
 

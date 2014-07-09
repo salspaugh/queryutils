@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from queryutils.datasource import CSVFiles, JSONFiles, PostgresDB, SQLite3DB
+from queryutils.databases import PostgresDB, SQLite3DB
+from queryutils.files import CSVFiles, JSONFiles
 from queryutils.parse import parse_query
 
 SOURCES = {
@@ -15,17 +16,25 @@ DESTINATIONS = {
     "sqlite3db": (SQLite3DB, ["dstpath"])
 }
 
-def main(src, dst, args, parse=False):
+SESSION_THRESHOLD = 30.*60. # in seconds
+
+def main(src, dst, args, parse=False, 
+        sessionthresh=SESSION_THRESHOLD,
+        resessionize=False):
     dst_class = DESTINATIONS[dst][0]
     dst_args = lookup(args, DESTINATIONS[dst][1])
     destination = dst_class(*dst_args)
     if parse:
         load_parsed(destination)
-    else:
-        src_class = SOURCES[src][0]
-        src_args = lookup(args, SOURCES[src][1])
-        source = src_class(*src_args)
-        load_base(source, destination)
+        return
+    if resessionize:
+        resessionize(destination, sessionthresh)
+        return
+    src_class = SOURCES[src][0]
+    src_args = lookup(args, SOURCES[src][1])
+    source = src_class(*src_args)
+    load_base(source, destination)
+    #load_sessions(destination, sessionthresh)
 
 def lookup(map, keys):
     return [map[k] for k in keys]
@@ -33,10 +42,11 @@ def lookup(map, keys):
 def load_parsed(db):
     db.connect()
     cursor = db.execute("SELECT id, text FROM queries")
-    for (qid, query) in cursor.fetchall():
-        parsetree = parse_query(query)
+    for row in cursor.fetchall():
+        d = { k:row[k] for k in row.keys() }
+        parsetree = parse_query(row["text"])
         if parsetree is not None:
-            parsetree.query_id = qid
+            parsetree.query_id = row["id"]
             insert_parsetree(db, parsetree)
     db.close()
 
@@ -47,21 +57,17 @@ def insert_parsetree(dst, parsetree):
             (parsetree.dumps(), parsetree.query_id))
     dst.commit()
 
+def resessionize(dst, threshold):
+    dst.sessionize_queries(threshold)
+
 def load_base(src, dst):
     src.connect()
     dst.connect()
-    uid = sid = qid = 1
-    for user in src.get_users_with_sessions():
+    uid = qid = 1
+    for user in src.get_users_with_queries():
         print "Loading user."
         insert_user(dst, user, uid)
-        for session in user.sessions.values():
-            print "Loading session."
-            insert_session(dst, session, sid, uid)
-            for query in session.queries:
-                insert_query(dst, query, qid, uid, sid)
-                qid += 1
-            sid += 1
-        for query in user.noninteractive_queries:
+        for query in user.queries:
             print "Loading query."
             insert_query(dst, query, qid, uid, None)
             qid += 1
@@ -74,13 +80,6 @@ def insert_user(dst, user, uid):
             (id, name, case_id, user_type) \
             VALUES (" + ",".join([dst.wildcard]*4) + ")", 
             (uid, user.name, user.case_id, user.user_type))
-    dst.commit()
-
-def insert_session(dst, session, sid, uid):
-    dst.execute("INSERT INTO sessions \
-            (id, user_id, session_type) \
-            VALUES (" + ",".join([dst.wildcard]*3) + ")",
-            (sid, uid, session.session_type))
     dst.commit()
 
 def insert_query(dst, query, qid, uid, sid):
@@ -96,8 +95,9 @@ def insert_query(dst, query, qid, uid, sid):
             query.splunk_search_id, query.saved_search_name, uid, sid))
     dst.commit()
 
-def load_parsetrees(src, dst):
-    pass
+def load_sessions(dst, sessionthresh):
+    dst.mark_suspicious_queries()
+    dst.sessionize_queries(sessionthresh)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
@@ -105,6 +105,10 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--trees", action="store_true",
                         help="insert parsetrees instead of the base data -- \
                             requires that base data already be loaded")
+    parser.add_argument("-r", "--resessionize", action="store_true",
+                        help="re-sessionize the query data with the given threshold")
+    parser.add_argument("-e", "--threshold",
+                        help="the session cutoff threshold in number of seconds")
     parser.add_argument("-s", "--source",
                         help="one of: " + ", ".join(SOURCES.keys()))
     parser.add_argument("-d", "--destination",
@@ -122,4 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--database",
                         help="the database for Postgres")
     args = parser.parse_args()
-    main(args.source, args.destination, vars(args), parse=args.trees)
+    main(args.source, args.destination, vars(args), 
+        parse=args.trees,
+        sessionthresh=args.threshold,
+        resessionize=args.resessionize)

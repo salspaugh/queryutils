@@ -17,10 +17,9 @@ LIMIT = 2000*BYTES_IN_MB
 logger = get_logger("queryutils")
 
 
-def get_users_from_file(filename):
+def get_users_from_file(filename, users):
     logger.debug("Reading from file:" + filename)
     first = True
-    users = {}
     with open(filename) as datafile:
         reader = csv.DictReader(datafile)
         for row in reader:
@@ -32,11 +31,11 @@ def get_users_from_file(filename):
             case = row.get('case_id', None)
             if case is not None:
                 case = unicode(case.decode("utf-8"))
-            if case is not None:
-                username = ".".join([username, case])
+            
+            userhash = ".".join([username, case])
 
             user = User(username)
-            user.case = case
+            user.case_id = case
 
             timestamp = float(dateutil.parser.parse(row.get('_time', None)).strftime('%s.%f'))
 
@@ -46,9 +45,9 @@ def get_users_from_file(filename):
 
             query = Query(querystring, timestamp)
             if not username in users:
-                users[username] = user
-            users[username].queries.append(query)
-            query.user = users[username]
+                users[userhash] = user
+            users[userhash].queries.append(query)
+            query.user = users[userhash]
             
             runtime = row.get('runtime', None)
             if runtime is None:
@@ -110,15 +109,13 @@ def get_users_from_file(filename):
 
             logger.debug("Successfully read query.")
 
-    # TODO: FIXME: This might cause incorrectness if a user's queries span files.
-    for user in users.values():
-        yield user
-
 def get_users_from_directory(directory, limit=LIMIT):
     raw_data_files = get_csv_files(directory, limit=limit)
+    users = {}
     for f in raw_data_files:
-        for user in get_users_from_file(f):
-            yield user
+        get_users_from_file(f, users)
+    for user in users.values():
+        yield user
 
 def get_csv_files(dir, limit=LIMIT):
     csv_files = []

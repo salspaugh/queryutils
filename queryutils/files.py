@@ -17,6 +17,12 @@ class Files(DataSource):
         self.version = version
         super(Files, self).__init__()
 
+    def connect(self):
+        pass
+
+    def close(self):
+        pass
+
     def get_users(self):
         for user in self.get_users_with_queries():
             yield user

@@ -80,6 +80,7 @@ class DataSource(object):
         for query in self.get_interactive_queries():
             #query.user = users[query.user_id]
             query_group = QueryGroup(query)
+            query_group.id = query.id
             query_group.copies = [q for q in self.get_interactive_queries_with_text(query.text)]
             if len(query_group.copies) <= 1 and multiple:
                 logger.debug("Query has no copies.")
@@ -88,6 +89,7 @@ class DataSource(object):
             if iter % 10 == 0:
                 logger.debug("Returned %d query groups." % iter)
             iter += 1
+            if iter > 2000: break
             #for copy in query.copies:
             #    copy.user = users[copy.user_id]
             
