@@ -76,7 +76,7 @@ class QueryGroup(object):
         rounded = [round(n) for n in self.interarrivals]
         clocked = [min(n%SECONDS, SECONDS - n%SECONDS)/SECONDS 
             for n in self.interarrivals] 
-        return mean(clocked)
+        return 1. - mean(clocked)
 
     def __str__(self):
         return """
@@ -107,7 +107,7 @@ class Query(object):
         self.time = float(time)
 
         self.user = None
-        self.is_interactive = None
+        self.is_interactive = False
         self.is_suspicious = False
         self.parsetree = None
 
@@ -115,7 +115,7 @@ class Query(object):
         self.earliest_event = None
         self.latest_event = None
         self.range = None # latest_event - earliest_event
-        self.is_realtime = None 
+        self.is_realtime = False 
 
         self.search_type = None
         self.splunk_search_id = None

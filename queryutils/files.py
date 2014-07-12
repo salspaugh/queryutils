@@ -51,6 +51,9 @@ class Files(DataSource):
             for (num, session) in user.sessions.iteritems():
                 yield session
 
+    def get_possibly_suspicious_texts(self):
+        return [] # TODO: Remove this portion of the code -- bad way to detect this.
+
     def get_users_with_queries(self):
         get_users = None
         if isfile(self.path):
@@ -90,33 +93,6 @@ class Files(DataSource):
     def remove_suspicious_queries(self, user, texts):
         return True
 
-    def extract_sessions_from_user(self, user):
-        if len(user.interactive_queries) == 0:
-            return
-        session_id = 0
-        user.interactive_queries.sort(key=lambda x: x.time)
-        prev_time = curr_time = -1.
-        session = Session(session_id, user)
-        user.sessions[session_id] = session
-        for query in user.interactive_queries:
-            curr_time = query.time
-            if prev_time < 0.:
-                prev_time = curr_time
-            query.delta = curr_time - prev_time
-            if query.delta > NEW_SESSION_THRESH_SECS:
-                self.update_session_duration(user.sessions[session_id])
-                session_id += 1
-                session = Session(session_id, user)
-                user.sessions[session_id] = session
-            prev_time = curr_time
-            query.session = user.sessions[session_id]
-            user.sessions[session_id].queries.append(query)
-        self.update_session_duration(user.sessions[session_id])
-
-    def update_session_duration(self, session):
-        first_query = session.queries[0]
-        last_query = session.queries[-1]
-        session.duration = last_query.time - first_query.time
 
 
 class JSONFiles(Files):

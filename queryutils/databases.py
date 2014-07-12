@@ -14,8 +14,12 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import sqlite3
 
-NEW_SESSION_THRESH_SECS = 30. * 60.
-REPEAT_THRESH_SECS = 1.
+SUSPICIOUS_USER_NAMES = ["splunk-system-user"]
+SUSPICIOUS_QUERY_THRESHOLDS = {
+    "interarrival_consistency_max": .9,
+    "interarrival_clockness_max": .9,
+    "distinct_users_max": 3,
+}
 
 elapsed = time() - start
 logger = get_logger("queryutils")
@@ -97,7 +101,7 @@ class Database(DataSource):
             q.__dict__.update(d)
             yield q
             if iter % 10 == 0:
-                logger.debug("Returned %d queries with text '%s.'" % (iter, text))
+                logger.debug("Returned %d queries with text '%s.'" % (iter,text))
             iter += 1
         self.close()
 
@@ -236,6 +240,48 @@ class Database(DataSource):
             yield user
         self.close()   
     
+    def mark_suspicious_users(self):
+        sql = "UPDATE users SET user_type=%s WHERE id=%s" % (self.wildcard, self.wildcard)
+        self.connect()
+        for user in self.get_users():
+            if user.name in SUSPICIOUS_USER_NAMES:
+                self.execute(sql, ("suspicious", user.id))
+                self.commit()
+        self.close()
+
+    def mark_suspicious_queries(self, thresholds=SUSPICIOUS_QUERY_THRESHOLDS):
+        sql = "UPDATE queries SET is_suspicious=true WHERE id=%s" % self.wildcard
+        self.connect()
+        for query_group in self.get_query_groups():
+            high_consistency = query_group.interarrival_consistency() > thresholds["interarrival_consistency_max"]
+            high_clockness = query_group.interarrival_clockness() > thresholds["interarrival_clockness_max"]
+            high_user_count = query_group.number_of_distinct_users() > thresholds["distinct_users_max"]
+            if high_consistency or high_clockness or high_user_count:
+                self.execute(sql, (query_group.query.id,))
+                self.commit()
+        self.close()             
+
+    def sessionize_queries(self, threshold, remove_suspicious=False):
+        table = "sessions"
+        column = "session_id"
+        if not remove_suspicious:
+            table = "bad_sessions"
+            column = "bad_session_id"
+        insert_sql = "INSERT INTO %s (id, user_id) VALUES (%s, %s)" % (table, self.wildcard, self.wildcard)
+        update_sql = "UPDATE queries SET %s=%s WHERE id=%s" % (column, self.wildcard, self.wildcard)
+        self.connect()
+        sid = 0
+        for user in self.get_users_with_queries():
+            self.extract_sessions_from_user(user, remove_suspicious=remove_suspicious)
+            for (_, session) in user.sessions.iteritems():
+                self.execute(insert_sql, (sid, user.id))
+                logger.debug("Inserted session %s" % sid)
+                self.commit()
+                for query in session.queries:
+                    self.execute(update_sql, (sid, query.id))
+                    self.commit()
+                sid += 1
+        self.close()
 
 class PostgresDB(Database):
 

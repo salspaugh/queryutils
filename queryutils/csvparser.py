@@ -24,6 +24,8 @@ def get_users_from_file(filename, users):
         reader = csv.DictReader(datafile)
         for row in reader:
             logger.debug("Attempting to read row.")
+
+            # Get basic user information.
             username = row.get('user', None)
             if username is not None:
                 username = unicode(username.decode("utf-8"))
@@ -31,24 +33,28 @@ def get_users_from_file(filename, users):
             case = row.get('case_id', None)
             if case is not None:
                 case = unicode(case.decode("utf-8"))
-            
-            userhash = ".".join([username, case])
 
-            user = User(username)
+            # Check if we've seen this user before.
+            userhash = ".".join([username, case])
+            user = users.get(userhash, None)
+            if user is None:
+                user = User(username)
+                users[userhash] = user
             user.case_id = case
 
+            # Get basic query information.
             timestamp = float(dateutil.parser.parse(row.get('_time', None)).strftime('%s.%f'))
 
             querystring = row.get('search', None)
             if querystring is not None:
                 querystring = unicode(querystring.decode("utf-8")).strip()
 
+            # Tie the query and the user together.
             query = Query(querystring, timestamp)
-            if not username in users:
-                users[userhash] = user
-            users[userhash].queries.append(query)
-            query.user = users[userhash]
-            
+            user.queries.append(query)
+            query.user = user
+           
+            # Get additional query information and add it to the query.
             runtime = row.get('runtime', None)
             if runtime is None:
                 runtime = row.get('total_run_time', None)
@@ -96,6 +102,8 @@ def get_users_from_file(filename, users):
             if searchtype is not None:
                 searchtype = unicode(searchtype.decode("utf-8"))
             query.search_type = searchtype
+            if query.search_type == "adhoc":
+                query.is_interactive = True
 
             splunk_id = row.get('search_id', None)
             if splunk_id is not None:

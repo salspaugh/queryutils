@@ -1,8 +1,11 @@
 from collections import defaultdict
 from logging import getLogger as get_logger
 from queryutils.query import QueryGroup
+from queryutils.session import Session
 
 logger = get_logger("queryutils")
+
+NEW_SESSION_THRESH_SECS = 30. * 60.
 
 class DataSource(object):
     
@@ -44,6 +47,13 @@ class DataSource(object):
         """
         raise NotImplementedError()
 
+    def get_interactive_queries(self, parsed=False):
+        """
+        Returns a generator over the set of interactive Query objects without users or sessions. 
+        Returns only parsed queries if `parsed` is True (defaults to False).
+        """
+        raise NotImplementedError()
+
     def get_users_with_queries(self, parsed=False): # TODO: Figure out semantics of `parsed`.
         """
         Returns a generator over a set of Users with queries.
@@ -56,23 +66,36 @@ class DataSource(object):
         Returns a generator over a set of Users with queries and sessions.
         """
         raise NotImplementedError()
+    
+    def extract_sessions_from_user(self, user, remove_suspicious=True):
+        if len(user.interactive_queries) == 0: return
+        session_id = 0
+        user.interactive_queries.sort(key=lambda x: x.time)
+        to_sessionize = [q for q in user.interactive_queries 
+            if not remove_suspicious or not q.is_suspicious]
+        if len(to_sessionize) == 0: return
+        prev_time = curr_time = -1.
+        session = Session(session_id, user)
+        user.sessions[session_id] = session
+        for query in to_sessionize:
+            curr_time = query.time
+            if prev_time < 0.:
+                prev_time = curr_time
+            query.delta = curr_time - prev_time
+            if query.delta > NEW_SESSION_THRESH_SECS:
+                self.update_session_duration(user.sessions[session_id])
+                session_id += 1
+                session = Session(session_id, user)
+                user.sessions[session_id] = session
+            prev_time = curr_time
+            query.session = user.sessions[session_id]
+            user.sessions[session_id].queries.append(query)
+        self.update_session_duration(user.sessions[session_id])
 
-    def get_interactive_queries(self, parsed=False):
-        """
-        Returns a generator over the set of interactive Query objects without users or sessions. 
-        Returns only parsed queries if `parsed` is True (defaults to False).
-        """
-        raise NotImplementedError()
-
-    def extract_command_stage(self, parsetree, commands):
-        if parsetree is not None:
-            count = -1
-            for node in parsetree.itertree():
-                if node.role == "STAGE":
-                    count += 1
-                    if (len(commands) == 0 and node.children[0].role == "COMMAND") or \
-                        (node.children[0].role == "COMMAND" and node.children[0].raw in commands):
-                        yield node, count
+    def update_session_duration(self, session):
+        first_query = session.queries[0]
+        last_query = session.queries[-1]
+        session.duration = last_query.time - first_query.time
 
     def get_query_groups(self, multiple=True):
         #users = { user.id: user for users in self.get_users() }
@@ -89,7 +112,7 @@ class DataSource(object):
             if iter % 10 == 0:
                 logger.debug("Returned %d query groups." % iter)
             iter += 1
-            if iter > 2000: break
+            #if iter > 2000: break
             #for copy in query.copies:
             #    copy.user = users[copy.user_id]
             
@@ -102,6 +125,16 @@ class DataSource(object):
         #        qg = QueryGroup(query)
         #        qg.copies = group
         #        yield qg
+
+    def extract_command_stage(self, parsetree, commands):
+        if parsetree is not None:
+            count = -1
+            for node in parsetree.itertree():
+                if node.role == "STAGE":
+                    count += 1
+                    if (len(commands) == 0 and node.children[0].role == "COMMAND") or \
+                        (node.children[0].role == "COMMAND" and node.children[0].raw in commands):
+                        yield node, count
 
     def get_unique_stages(self, commands):
         seen = set()

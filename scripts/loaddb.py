@@ -33,8 +33,8 @@ def main(src, dst, args, parse=False,
     src_class = SOURCES[src][0]
     src_args = lookup(args, SOURCES[src][1])
     source = src_class(*src_args)
-    load_base(source, destination)
-    #load_sessions(destination, sessionthresh)
+    #load_base(source, destination)
+    load_sessions(destination, sessionthresh)
 
 def lookup(map, keys):
     return [map[k] for k in keys]
@@ -84,20 +84,21 @@ def insert_user(dst, user, uid):
 
 def insert_query(dst, query, qid, uid, sid):
     dst.execute("INSERT INTO queries \
-            (id, text, time, is_interactive, execution_time, \
-            earliest_event, latest_event, range, is_realtime, \
+            (id, text, time, is_interactive, is_suspicious \
+            execution_time, earliest_event, latest_event, range, is_realtime, \
             search_type, splunk_search_id, saved_search_name, \
             user_id, session_id) \
             VALUES ("+ ",".join([dst.wildcard]*14) +")",
-            (qid, query.text, query.time, query.is_interactive, 
+            (qid, query.text, query.time, query.is_interactive, query.is_suspicious,
             query.execution_time, query.earliest_event, query.latest_event,
             query.range, query.is_realtime, query.search_type,
             query.splunk_search_id, query.saved_search_name, uid, sid))
     dst.commit()
 
 def load_sessions(dst, sessionthresh):
-    dst.mark_suspicious_queries()
-    dst.sessionize_queries(sessionthresh)
+    #dst.mark_suspicious_users()
+    #dst.mark_suspicious_queries()
+    dst.sessionize_queries(sessionthresh, remove_suspicious=True)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
