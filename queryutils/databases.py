@@ -148,11 +148,15 @@ class Database(DataSource):
                 print parsetree
         self.close()   
 
-    def get_session_from_user(self, uid):
+    def get_session_from_user(self, uid, bad=False):
         self.connect()
-        scursor = self.execute("SELECT id, user_id, session_type \
-                                FROM sessions \
-                                WHERE user_id = " + self.wildcard, (uid,))
+        table = "sessions"
+        if bad:
+            table = "bad_sessions"
+        sql = "SELECT id, user_id, session_type \
+                                FROM %s \
+                                WHERE user_id=%s" % (table, self.wildcard)
+        scursor = self.execute(sql, (uid,))
         for row in scursor.fetchall():
             d = { k:row[k] for k in row.keys() }
             session = Session(row["id"], row["user_id"])
@@ -160,22 +164,25 @@ class Database(DataSource):
             yield session
         self.close() 
 
-    def get_query_in_session(self, sid, parsed=False):
+    def get_query_in_session(self, sid, parsed=False, bad=False):
         self.connect()
+        session_col = "session_id"
+        if bad:
+            session_col = "bad_session_id"
+        table = "queries"
+        where = ""
+        tree_col = ""
         if parsed:
-            qcursor = self.execute("SELECT id, text, time, is_interactive, is_suspicious, search_type, \
-                            earliest_event, latest_event, range, is_realtime, \
-                            splunk_search_id, execution_time, saved_search_name, \
-                            user_id, session_id, parsetree \
-                            FROM queries, parsetrees \
-                            WHERE id = parsetrees.query_id AND session_id = " + self.wildcard, (sid,))
-        else:
-            qcursor = self.execute("SELECT id, text, time, is_interactive, is_suspicious, search_type, \
-                            earliest_event, latest_event, range, is_realtime, \
-                            splunk_search_id, execution_time, saved_search_name, \
-                            user_id, session_id \
-                            FROM queries \
-                            WHERE session_id = " + self.wildcard, (sid,))
+            table = "queries, parsetrees"
+            where = "id = parsetrees.query_id AND" 
+            tree_col = ", parsetree"
+        sql = "SELECT id, text, time, is_interactive, is_suspicious, search_type, \
+                    earliest_event, latest_event, range, is_realtime, \
+                    splunk_search_id, execution_time, saved_search_name, \
+                    user_id, %s%s \
+                    FROM %s \
+                    WHERE %s session_id=%s" % (session_col, tree_col, table, where, self.wildcard)
+        qcursor = self.execute(sql, (sid,))
         for row in qcursor.fetchall():
             d = { k:row[k] for k in row.keys() }
             q = Query(row["text"], row["time"])
@@ -210,14 +217,14 @@ class Database(DataSource):
             yield q
         self.close() 
 
-    def get_sessions(self, parsed=False):
+    def get_sessions(self, parsed=False, bad=False):
         self.connect()
         sessions = {}
         for user in self.get_users():
-            for session in self.get_session_from_user(user.id):
+            for session in self.get_session_from_user(user.id, bad=bad):
                 sessions[session.id] = session
                 user.sessions[session.id] = session
-                for query in self.get_query_in_session(session.id, parsed=parsed):
+                for query in self.get_query_in_session(session.id, parsed=parsed, bad=bad):
                     query.session = session
                     query.user = user
                     if session is not None:
@@ -252,13 +259,20 @@ class Database(DataSource):
     def mark_suspicious_queries(self, thresholds=SUSPICIOUS_QUERY_THRESHOLDS):
         sql = "UPDATE queries SET is_suspicious=true WHERE id=%s" % self.wildcard
         self.connect()
-        for query_group in self.get_query_groups():
-            high_consistency = query_group.interarrival_consistency() > thresholds["interarrival_consistency_max"]
-            high_clockness = query_group.interarrival_clockness() > thresholds["interarrival_clockness_max"]
-            high_user_count = query_group.number_of_distinct_users() > thresholds["distinct_users_max"]
-            if high_consistency or high_clockness or high_user_count:
-                self.execute(sql, (query_group.query.id,))
+        #for query_group in self.get_query_groups():
+        #    high_consistency = query_group.interarrival_consistency() > thresholds["interarrival_consistency_max"]
+        #    high_clockness = query_group.interarrival_clockness() > thresholds["interarrival_clockness_max"]
+        #    high_user_count = query_group.number_of_distinct_users() > thresholds["distinct_users_max"]
+        #    if high_consistency or high_clockness or high_user_count:
+        #        self.execute(sql, (query_group.query.id,))
+        #        self.commit()
+        for query in self.get_queries():
+            if query.text.find("typeahead") > -1:
+                logger.debug("Marking suspicious: %s" % query.text)
+                self.execute(sql, (query.id,))
                 self.commit()
+            else:
+                logger.debug("Not marking: %s" % query.text)
         self.close()             
 
     def sessionize_queries(self, threshold, remove_suspicious=False):
