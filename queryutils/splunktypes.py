@@ -31,6 +31,7 @@ category = {
     "fields": "Project",
     "filldown": "Transform",
     "fillnull": "Transform",
+    "format": "Miscellaneous",
     "gauge": "Augment",
     "geostats": "Aggregate",
     "head": "Filter",
@@ -81,6 +82,7 @@ category = {
     "stats": "Aggregate",
     "strcat": "Augment",
     "streamstats": "Window",
+    "summaryindex": "Cache",
     "table": "Project",
     "tags": "Augment",
     "tail": "Filter",
@@ -105,7 +107,7 @@ def lookup_categories(querystring):
         elif token.type == "MACRO":
             categories.append("Macro")
         elif token.type not in ["ARGS", "PIPE", "LBRACKET", "RBRACKET"]:
-            command = token.value
+            command = token.value.lower()
             # Note: This is an imperfect way to detect this.
             # See below for an example.
             if token.value == "addtotals": 
