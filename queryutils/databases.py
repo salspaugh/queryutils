@@ -52,8 +52,18 @@ class Database(DataSource):
             yield user 
         self.close()   
 
-    def get_queries(self, parsed=False):
+    def get_queries(self, interactive=None, parsed=False):
         self.connect()
+        sql = "SELECT id, text, time, is_interactive, is_suspicious, search_type, \
+                  earliest_event, latest_event, range, is_realtime, \
+                  splunk_search_id, execution_time, saved_search_name, \
+                  user_id, session_id, parsetree \
+                  FROM queries%s %s %s %s" % (from_sql, where_sql, pjoin_sql, interactive_sql)
+        from_sql = ""
+        where_sql = ""
+        if parsed or interactive:
+            where_sql = "WHERE"
+            parsetrees_sql = ", parsetrees"
         if parsed:
             qcursor = self.execute("SELECT id, text, time, is_interactive, is_suspicious, search_type, \
                             earliest_event, latest_event, range, is_realtime, \
@@ -77,23 +87,13 @@ class Database(DataSource):
         self.close()
 
     def get_interactive_queries_with_text(self, text):
-        #logger.debug("Getting queries with text %s" % text)
-        #start = time()
         self.connect()
-        #qcursor = self.execute("SELECT id, text, time, is_interactive, is_suspicious, search_type, \
-        #                earliest_event, latest_event, range, is_realtime, \
-        #                splunk_search_id, execution_time, saved_search_name, \
-        #                user_id, session_id \
-        #                FROM queries \
-        #                WHERE text=%s" % self.wildcard, (text,))
         qcursor = self.execute("SELECT id, text, time, is_interactive, is_suspicious, search_type, \
                         earliest_event, latest_event, range, is_realtime, \
                         splunk_search_id, execution_time, saved_search_name, \
                         user_id, session_id \
                         FROM queries \
                         WHERE is_interactive=%s AND text=%s" % (self.wildcard, self.wildcard), (True, text))
-        #elapsed = time() - start
-        #logger.debug("Grabbed queries with text %s in %f seconds." % (text, elapsed))
         iter = 0
         for row in qcursor.fetchall():
             d = { k:row[k] for k in row.keys() }

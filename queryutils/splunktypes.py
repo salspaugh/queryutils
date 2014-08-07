@@ -17,8 +17,11 @@ category = {
     "chart": "Aggregate",
     "collect": "Cache",
     "convert": "Transform",
+    "contingency": "Aggregate",
+    "counttable": "Aggregate",
     "datamodel": "Input",
     "dbinspect": "Read Metadata",
+    "dbquery": "Input",
     "dedup": "Filter",
     "delete": "Meta",
     "delta": "Window",
@@ -34,6 +37,7 @@ category = {
     "format": "Miscellaneous",
     "gauge": "Augment",
     "geostats": "Aggregate",
+    "geoip": "Join",
     "head": "Filter",
     "history": "Read Metadata",
     "inputcsv": "Input",
@@ -51,8 +55,9 @@ category = {
     "metasearch": "Meta",
     "multikv": "Transform",
     "mvcombine": "Aggregate",
-    "mvexpand": "Input",
+    "mvexpand": "Transform",
     "nomv": "Transform",
+    "noop": "Miscellaneous",
     "outlier": "Transform",
     "outputcsv": "Output",
     "outputlookup": "Output",
@@ -83,10 +88,12 @@ category = {
     "strcat": "Augment",
     "streamstats": "Window",
     "summaryindex": "Cache",
+    "summarize": "Cache",
     "table": "Project",
     "tags": "Augment",
     "tail": "Filter",
     "timechart": "Aggregate",
+    "timewrap": "Aggregate",
     "top": "Aggregate",
     "transaction": "Aggregate",
     "transpose": "Transpose",
@@ -102,8 +109,8 @@ def lookup_categories(querystring):
     tokens = tokenize_query(querystring)
     categories = []
     for idx, token in enumerate(tokens):
-        if token.type == "USER_DEFINED_COMMAND":
-            categories.append("User-Defined")
+        if token.type == "EXTERNAL_COMMAND":
+            categories.append(category.get(token.value, "Miscellaneous"))
         elif token.type == "MACRO":
             categories.append("Macro")
         elif token.type not in ["ARGS", "PIPE", "LBRACKET", "RBRACKET"]:
