@@ -78,7 +78,7 @@ class CSVFilesTestCase(DataSourceTestCase, unittest.TestCase):
 
     def setUp(self):
         thisdir = path.dirname(path.realpath(__file__))
-        self.path = path.join(thisdir, "data/diag2014.csv")
+        self.path = path.join(thisdir, "data/format2014.csv")
         self.version = Version.DIAG_2014
         self.args = [self.path, self.version]
         self.source = CSVFiles
@@ -91,7 +91,7 @@ class JSONFilesTestCase(DataSourceTestCase, unittest.TestCase):
 
     def setUp(self):
         thisdir = path.dirname(path.realpath(__file__))
-        self.path = path.join(thisdir, "data/diag2012.json")
+        self.path = path.join(thisdir, "data/format2012.json")
         self.version = Version.DIAG_2012
         self.args = [self.path, self.version]
         self.source = JSONFiles

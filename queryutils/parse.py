@@ -21,6 +21,44 @@ def tag_parseable(query):
     if query.parsetree is not None:
         query.parseable = True
 
+def split_query_into_stages(query):
+
+    stages = []
+    current_stage = []
+    subsearch = []
+
+    for token in tokenize_query(query):
+
+        if token.type == "LBRACKET":
+            subsearch.append(token)
+            current_stage.append(token.value)
+            continue
+        
+        if token.type == "RBRACKET":
+            current_stage.append(token.value)
+            subsearch.pop(-1)
+            if len(subsearch) == 0:
+                stages.append(" ".join(current_stage))
+                current_stage = []
+            continue
+
+        if len(subsearch) > 0:
+            current_stage.append(token.value)
+            continue 
+
+        if token.type == "PIPE":
+            if len(current_stage) > 0:
+                stages.append(" ".join(current_stage))
+            current_stage = [token.value]
+            continue
+            
+        current_stage.append(token.value)
+   
+    if len(current_stage) > 0:
+        stages.append(" ".join(current_stage))
+
+    return stages
+
 def parse_query(query):
     text = ""
     if isinstance(query, Query):

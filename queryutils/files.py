@@ -74,12 +74,12 @@ class Files(DataSource):
             self.extract_sessions_from_user(user)
             yield user
 
-    def remove_noninteractive_queries_by_search_type(self, user, version=Version.DIAG_2014):
-        if version == Version.DIAG_2014:
+    def remove_noninteractive_queries_by_search_type(self, user, version=Version.FORMAT_2014):
+        if version == Version.FORMAT_2014:
             handgenerated = "adhoc"
             user.noninteractive_queries = [query for query in user.queries if query.search_type != handgenerated]
             user.interactive_queries = [query for query in user.queries if query.search_type == handgenerated]
-        elif version in [Version.DIAG_2012, Version.STORM_2013]:
+        elif version in [Version.FORMAT_2012, Version.FORMAT_2013]:
             handgenerated = "historical"
             user.noninteractive_queries = [query for query in user.queries if query.search_type != handgenerated]
             user.interactive_queries = [query for query in user.queries if query.search_type == handgenerated]
