@@ -56,6 +56,7 @@ class Files(DataSource):
 
     def get_users_with_queries(self):
         get_users = None
+        users = {}
         if isfile(self.path):
             get_users = self.module.get_users_from_file
         if isdir(self.path):
@@ -63,7 +64,8 @@ class Files(DataSource):
         if get_users is None: # TODO: Raise error.
             print "Non-existent path:", self.path
             exit()
-        for user in get_users(self.path):
+        get_users(self.path, users)
+        for user in users.values():
             yield user
 
     def get_users_with_sessions(self):

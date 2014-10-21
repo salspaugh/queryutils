@@ -117,13 +117,10 @@ def get_users_from_file(filename, users):
 
             logger.debug("Successfully read query.")
 
-def get_users_from_directory(directory, limit=LIMIT):
+def get_users_from_directory(directory, users, limit=LIMIT):
     raw_data_files = get_csv_files(directory, limit=limit)
-    users = {}
     for f in raw_data_files:
         get_users_from_file(f, users)
-    for user in users.values():
-        yield user
 
 def get_csv_files(dir, limit=LIMIT):
     csv_files = []

@@ -7,6 +7,7 @@ category = {
     "addinfo": "Augment",
     "addtotals col": "Aggregate",
     "addtotals row": "Augment",
+    "addtotals": "Augment",
     "anomalies": "Window",
     "append": "Set",
     "appendcols": "Augment",
