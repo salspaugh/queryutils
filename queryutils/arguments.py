@@ -38,3 +38,7 @@ def get_arguments(parser, o=False, w=False, t=False, e=False):
                         help="the training data file to train the classifier (.csv)")
 
   return parser.parse_args()
+
+
+def lookup(dictionary, lookup_keys):
+    return [dictionary[k] for k in lookup_keys]
