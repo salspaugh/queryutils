@@ -6,7 +6,7 @@ from logging import getLogger as get_logger
 from queryutils.source import DataSource
 from queryutils.user import User
 from queryutils.session import Session
-from queryutils.query import Query
+from queryutils.query import Query, QueryType
 from queryutils.parse import parse_query
 from splparser.parsetree import ParseTreeNode
 
@@ -35,7 +35,7 @@ class Database(DataSource):
     def close(self):
         if self.connection:
             self.connection.close()
-            self.connection = None  
+            self.connection = None
 
     def commit(self):
         if self.connection:
@@ -49,8 +49,8 @@ class Database(DataSource):
             logger.debug("Fetched user: " + row["name"])
             user = User(row["name"])
             user.__dict__.update(d)
-            yield user 
-        self.close()   
+            yield user
+        self.close()
 
     def get_queries(self, interactive=None, parsed=False):
         self.connect()
@@ -84,6 +84,45 @@ class Database(DataSource):
             if parsed:
                 q.parsetree = ParseTreeNode.loads(row["parsetree"])
             yield q
+        self.close()
+
+    def fetch_queries_by_user(self, query_type):
+        self.connect()
+        if query_type == QueryType.INTERACTIVE:
+            ucursor = self.execute("SELECT id FROM users WHERE user_type is null")
+        elif query_type == QueryType.SCHEDULED:
+            ucursor = self.execute("SELECT id FROM users")
+        else:
+            raise RuntimeError("Invalid query type.")
+        for row in ucursor.fetchall():
+            user_id = row["id"]
+            if query_type == QueryType.INTERACTIVE:
+                sql = "SELECT text FROM queries WHERE is_interactive=true AND is_suspicious=false AND user_id=%s" % self.wildcard
+            elif query_type == QueryType.SCHEDULED:
+                sql = "SELECT DISTINCT text FROM queries WHERE is_interactive=false AND user_id=%s" % self.wildcard
+            else:
+                raise RuntimeError("Invalid query type.")
+            qcursor = self.execute(sql, (user_id, ))
+            for row in qcursor.fetchall():
+                query = row["text"]
+                yield (user_id, query)
+        self.close()
+
+    def fetch_queries(self, query_type):
+        self.connect()
+        if query_type == QueryType.INTERACTIVE:
+            sql = "SELECT text FROM queries, users \
+                    WHERE queries.user_id=users.id AND \
+                        is_interactive=true AND \
+                        is_suspicious=false AND \
+                        user_type is null"
+        elif query_type == QueryType.SCHEDULED:
+            sql = "SELECT DISTINCT text FROM queries WHERE is_interactive=false"
+        else:
+            raise RuntimeError("Invalid query type.")
+        cursor = self.execute(sql)
+        for row in cursor.fetchall():
+            yield row["text"]
         self.close()
 
     def get_interactive_queries_with_text(self, text):
@@ -133,7 +172,7 @@ class Database(DataSource):
             if iter % 10 == 0:
                 logger.debug("Returned %d interactive queries." % (iter))
             iter += 1
-        self.close()   
+        self.close()
 
     def get_parsetrees(self):
         self.connect()
@@ -146,7 +185,7 @@ class Database(DataSource):
             except ValueError as e:
                 print e
                 print parsetree
-        self.close()   
+        self.close()
 
     def get_session_from_user(self, uid, bad=False):
         self.connect()
@@ -162,7 +201,7 @@ class Database(DataSource):
             session = Session(row["id"], row["user_id"])
             session.__dict__.update(d)
             yield session
-        self.close() 
+        self.close()
 
     def get_query_in_session(self, sid, parsed=False, bad=False):
         self.connect()
@@ -174,7 +213,7 @@ class Database(DataSource):
         tree_col = ""
         if parsed:
             table = "queries, parsetrees"
-            where = "id = parsetrees.query_id AND" 
+            where = "id = parsetrees.query_id AND"
             tree_col = ", parsetree"
         sql = "SELECT id, text, time, is_interactive, is_suspicious, search_type, \
                     earliest_event, latest_event, range, is_realtime, \
@@ -215,7 +254,7 @@ class Database(DataSource):
             if parsed:
                 q.parsetree = ParseTreeNode.loads(row["parsetree"])
             yield q
-        self.close() 
+        self.close()
 
     def get_sessions(self, parsed=False, bad=False):
         self.connect()
@@ -234,8 +273,8 @@ class Database(DataSource):
             session.queries = sorted(session.queries, key=lambda x: x.time)
             if len(session.queries) > 1:
                 yield session
-        self.close()   
-    
+        self.close()
+
     def get_users_with_queries(self, parsed=False):
         self.connect()
         for user in self.get_users():
@@ -245,8 +284,8 @@ class Database(DataSource):
             user.interactive_queries = [q for q in user.queries if q.is_interactive]
             user.noninteractive_queries = [q for q in user.queries if not q.is_interactive]
             yield user
-        self.close()   
-    
+        self.close()
+
     def mark_suspicious_users(self):
         sql = "UPDATE users SET user_type=%s WHERE id=%s" % (self.wildcard, self.wildcard)
         self.connect()
@@ -273,7 +312,7 @@ class Database(DataSource):
                 self.commit()
             else:
                 logger.debug("Not marking: %s" % query.text)
-        self.close()             
+        self.close()
 
     def sessionize_queries(self, threshold, remove_suspicious=False):
         table = "sessions"
@@ -320,7 +359,7 @@ class PostgresDB(Database):
 
 
 class SQLite3DB(Database):
-    
+
     def __init__(self, path):
         self.path = path
         super(SQLite3DB, self).__init__("?")

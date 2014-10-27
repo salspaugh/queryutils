@@ -52,7 +52,7 @@ class QueryGroup(object):
             self.interarrivals = self.interarrival_intervals()
         if len(self.interarrivals) <= 1:
             return 0.
-        hist, _ = histogram(self.interarrivals, bins=ENTROPY_NBUCKETS, 
+        hist, _ = histogram(self.interarrivals, bins=ENTROPY_NBUCKETS,
             range=(0., MAX_INTERVAL), normed=True)
         # TODO: `normed` is broken, use density, only available in numpy>=?
         return -1*sum([(p)*log((p+EPSILON)) for p in hist])
@@ -74,8 +74,8 @@ class QueryGroup(object):
         if len(self.interarrivals) == 0:
             return -1. # TODO: What is a reasonable value here?
         rounded = [round(n) for n in self.interarrivals]
-        clocked = [min(n%SECONDS, SECONDS - n%SECONDS)/SECONDS 
-            for n in self.interarrivals] 
+        clocked = [min(n%SECONDS, SECONDS - n%SECONDS)/SECONDS
+            for n in self.interarrivals]
         return 1. - mean(clocked)
 
     def __str__(self):
@@ -90,8 +90,8 @@ class QueryGroup(object):
         Clockness: %f
         Interarrivals: %s
         """ % (str(self.query.id),
-            wrap_text(self.query.text), 
-            self.query.user_id, 
+            wrap_text(self.query.text),
+            self.query.user_id,
             self.number_of_copies(),
             self.number_of_distinct_users(),
             self.interarrival_entropy(),
@@ -115,18 +115,22 @@ class Query(object):
         self.earliest_event = None
         self.latest_event = None
         self.range = None # latest_event - earliest_event
-        self.is_realtime = False 
+        self.is_realtime = False
 
         self.search_type = None
         self.splunk_search_id = None
         self.saved_search_name = None
-        
+
         self.session = None
-        
-    
+
+
     def __repr__(self):
         return "".join([str(self.time), ": ", self.text, "\n"])
 
+
+class QueryType(object):
+    INTERACTIVE = "interactive"
+    SCHEDULED = "scheduled"
 
 
 class QueryEncoder(JSONEncoder):
