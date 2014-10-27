@@ -13,7 +13,7 @@ setuptools.setup(
     license = "BSD",
     #keywords = "",
     #url = "",
-    packages=['queryutils']
+    packages=['queryutils'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
