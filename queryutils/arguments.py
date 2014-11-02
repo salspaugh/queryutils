@@ -30,12 +30,6 @@ def get_arguments(parser, o=False, w=False, t=False, e=False):
   if w:
     parser.add_argument("-w", "--weighted", action="store_true",
                       help="if true, average across users")
-  if t:
-    parser.add_argument("-t", "--transformation",
-                        help="the type of transformation to examine")
-  if e:
-    parser.add_argument("-e", "--examples",
-                        help="the training data file to train the classifier (.csv)")
 
   return parser.parse_args()
 

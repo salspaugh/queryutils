@@ -47,17 +47,17 @@ the scripts in `scripts` as an example of how to do so. To set up a SQLite3 test
 ./scripts/load_parsed_sqlite3.sh
 ```
 
-This creates a SQLite3 database in named sqlite3.db and load four tables
+This creates a SQLite3 database named sqlite3.db and loads four tables
 for your querying convenience. There are also scripts that demonstrate how
 to load a Postgres database from the query logs. If you use Postgres, you
 probably also want to set up the indices as shown in
 `./scripts/setup_indices_postgres.sql`. You can do this by running ```psql DATABASE_NAME -f scripts/setup_indices_postgres.sql```.
 
-The scripts above run the ```scripts/loaddb.py``` script. To import your own log data into your own database, you would use the following line:
+The scripts above run the ```scripts/loaddb.py``` script. To import your own Splunk queries into your own database, you would use the following line:
 
 ```python scripts/loaddb.py -s csvfiles -d postgresdb -p PATH_TO_CSVS -u USER -w PASSWORD -b DATABASE -v format_2014```
 
-You would replace ```PATH_TO_CSVS``` with the path to your csv data files, ```USER``` with your user for the database, ```PASSWORD``` with the password for the database, ```DATABASE```, and if your version of logs is older than the 2014 version then you can change ```format_2014``` to either ```format_2013``` or ```format_2012```.
+You would replace ```PATH_TO_CSVS``` with the path to your .csv files containing your Splunk queries extracted using the above Splunk query. You can replace ```USER``` with your user for the database and ```PASSWORD``` with the password for the database, ```DATABASE```. If your Splunk queries are taken from a version of Splunk that is older than 2014, then you can change ```format_2014``` to either ```format_2013``` or ```format_2012```.
 
 4. *Optional:* Set up the test databases using the scripts in the scripts
 directory and run the tests to make sure everything is working:
