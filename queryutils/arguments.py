@@ -8,7 +8,7 @@ SOURCES = {
     "sqlite3db": (SQLite3DB, ["srcpath"])
 }
 
-def get_arguments(parser, o=False, w=False, t=False, e=False):
+def get_arguments(parser, o=False, w=False):
   parser.add_argument("-s", "--source",
                       help="one of: " + ", ".join(SOURCES.keys()))
   parser.add_argument("-a", "--path",
