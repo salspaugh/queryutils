@@ -118,7 +118,7 @@ def lookup_categories(querystring):
             command = token.value.lower()
             # Note: This is an imperfect way to detect this.
             # See below for an example.
-            if token.value == "addtotals": 
+            if token.value == "addtotals":
                 if len(tokens) == idx+1:
                     command = "addtotals row"
                 elif tokens[idx+1].value.lower()[:3] == "row":
@@ -141,6 +141,20 @@ def lookup_category(node_or_string):
     return category[command]
 
 
+def lookup_commands(querystring):
+    commands = []
+    tokens = tokenize_query(querystring)
+    for token in tokens:
+        val = token.value.strip().lower()
+        if token.type == "EXTERNAL_COMMAND":
+            commands.append(val)
+        elif token.type == "MACRO":
+            commands.append(val)
+        elif token.type not in ["ARGS", "PIPE", "LBRACKET", "RBRACKET"]:
+            commands.append(val)
+    return commands
+
+
 def detect_addtotals_type(stagenode):
     optionnodes = []
     for node in stagenode.itertree():
@@ -156,12 +170,12 @@ def detect_addtotals_type(stagenode):
             return "addtotals row"
     return "addtotals row"
 
-    
+
 def detect_truth_value(astring):
     value = False
     if astring.lower() in ["true", "t"]:
         value = True
-    else:   
+    else:
         try:
             value = float(valuenode.raw)
         except:
