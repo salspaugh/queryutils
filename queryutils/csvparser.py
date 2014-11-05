@@ -18,6 +18,14 @@ logger = get_logger("queryutils")
 
 
 def get_users_from_file(filename, users):
+    """Populate the users dictionary with users and their queris from the given file.
+
+    :param filename: The .csv file containing user queries
+    :type filename: str
+    :param users: The user dict into which to place the users
+    :type users: dict
+    :rtype: None
+    """
     logger.debug("Reading from file:" + filename)
     first = True
     with open(filename) as datafile:
@@ -35,15 +43,26 @@ def get_users_from_file(filename, users):
                 case = unicode(case.decode("utf-8"))
 
             # Check if we've seen this user before.
-            userhash = ".".join([username, case])
-            user = users.get(userhash, None)
+            user = None
+            userhash = None
+            if username is not None and case is not None:
+                userhash = ".".join([username, case])
+                user = users.get(userhash, None)
+            elif username is not None and case is None:
+                userhash = username
+                user = users.get(userhash, None)
+            else:
+                userhash = ""
+                user = users.get(userhash, None)
             if user is None:
                 user = User(username)
                 users[userhash] = user
             user.case_id = case
 
             # Get basic query information.
-            timestamp = float(dateutil.parser.parse(row.get('_time', None)).strftime('%s.%f'))
+            timestamp = row.get('_time', None)
+            if timestamp is not None:
+                timestamp = float(dateutil.parser.parse(timestamp).strftime('%s.%f'))
 
             querystring = row.get('search', None)
             if querystring is not None:
@@ -118,11 +137,29 @@ def get_users_from_file(filename, users):
             logger.debug("Successfully read query.")
 
 def get_users_from_directory(directory, users, limit=LIMIT):
+    """Populate the users dict with users from the .csv files.
+
+    :param directory: The path to the directory containing the .csv files 
+    :type directory: str
+    :param users: The dict to contain the users read from the .csv files
+    :type users: dict
+    :param limit: The approximate number of bytes to read in (for testing)
+    :type limit: int
+    :rtype: None
+    """
     raw_data_files = get_csv_files(directory, limit=limit)
     for f in raw_data_files:
         get_users_from_file(f, users)
 
 def get_csv_files(dir, limit=LIMIT):
+    """Return the paths to all the .csv files in the given directory.
+
+    :param dir: The path to the given directory
+    :type dir: str
+    :param limit: The approximate number of bytes to read in (for testing)
+    :type limit: int
+    :rtype: list
+    """
     csv_files = []
     bytes_added = 0.
     for (dirpath, dirnames, filenames) in os.walk(dir):

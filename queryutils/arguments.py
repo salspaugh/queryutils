@@ -8,6 +8,15 @@ SOURCES = {
     "sqlite3db": (SQLite3DB, ["srcpath"])
 }
 
+def initialize_source(source, args):
+    src_class = SOURCES[source][0]
+    src_args = lookup(vars(args), SOURCES[source][1])
+    source = src_class(*src_args)
+    return source
+
+def lookup(dictionary, lookup_keys):
+    return [dictionary[k] for k in lookup_keys]
+
 def get_arguments(parser, o=False, w=False):
   parser.add_argument("-s", "--source",
                       help="one of: " + ", ".join(SOURCES.keys()))
@@ -32,7 +41,3 @@ def get_arguments(parser, o=False, w=False):
                       help="if true, average across users")
 
   return parser.parse_args()
-
-
-def lookup(dictionary, lookup_keys):
-    return [dictionary[k] for k in lookup_keys]

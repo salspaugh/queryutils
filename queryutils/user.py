@@ -1,9 +1,18 @@
 from json import JSONEncoder
 
 class User(object):
-
+    """Represents a user object.
+    """
 
     def __init__(self, name):
+        """Create a User object.
+
+        :param self: The object being created
+        :type self: User
+        :param name: The name of the user
+        :type name: str
+        :rtype: User
+        """
         self.name = name
         self.sessions = {}
         self.queries = []

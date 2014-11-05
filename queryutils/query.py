@@ -100,11 +100,23 @@ class QueryGroup(object):
             wrap_text(str(self.interarrivals)))
 
 class Query(object):
+    """A class representing a Splunk query and associated information.
+    """
 
     def __init__(self, text, time):
+        """Create a Query object.
+
+        :param self: The current Query object
+        :type self: Query
+        :param text: The actual text of the query
+        :type text: str
+        :param time: The timestamp associated with the query in UNIX epoch time
+        :type time: float
+        :rtype: Query
+        """
 
         self.text = text
-        self.time = float(time)
+        self.time = float(time) if time is not None else time
 
         self.user = None
         self.is_interactive = False
@@ -131,10 +143,10 @@ class Query(object):
 class QueryType(object):
     INTERACTIVE = "interactive"
     SCHEDULED = "scheduled"
+    ALL = "all"
 
 
 class QueryEncoder(JSONEncoder):
-
 
     def encode(self, obj):
         query_dict = obj.__dict__

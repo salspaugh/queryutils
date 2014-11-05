@@ -8,31 +8,33 @@ logger = get_logger("queryutils")
 NEW_SESSION_THRESH_SECS = 30. * 60.
 
 class DataSource(object):
+    """Represents a source of Splunk queries, users, and other data.
+
+    This object should not be initialized directly, rather, one of
+    its subclasses should be used.
+    """
     
     def __init__(self):
         logger.debug("Initialized data source.")
 
     def connect(self):
-        """
-        Returns a database connection.
+        """Returns a database connection.
         """
         raise NotImplementedError()
 
     def close(self):
-        """
-        Closes a database connection.
+        """Closes a database connection.
         """
         raise NotImplementedError()
 
     def commit(self):
-        """
-        Commits a database transaction.
+        """Commits a database transaction.
         """
         raise NotImplementedError()
 
     def get_users(self):
-        """
-        Returns a generator over a set of User objects.
+        """Returns a generator over a set of User objects.
+
         The User objects returned are not guaranteed to be returned with their
         corresponding queries and sessions.
         If you need users with their corresponding sessions or queries, use a 
@@ -41,33 +43,42 @@ class DataSource(object):
         raise NotImplementedError()
         
     def get_queries(self, parsed=False):
-        """
-        Returns a generator over a set of Query objects without users or sessions.
+        """Returns a generator over a set of Query objects without users or sessions.
+
         Returns only parsed queries if `parsed` is True (defaults to False).
         """
         raise NotImplementedError()
 
     def get_interactive_queries(self, parsed=False):
-        """
-        Returns a generator over the set of interactive Query objects without users or sessions. 
+        """Returns a generator over the set of interactive Query objects without users or sessions. 
+
         Returns only parsed queries if `parsed` is True (defaults to False).
         """
         raise NotImplementedError()
 
-    def get_users_with_queries(self, parsed=False): # TODO: Figure out semantics of `parsed`.
-        """
-        Returns a generator over a set of Users with queries.
-        Users returned are not guaranteed to have sessionized queries.
+    def get_users_with_queries(self, parsed=False): # : Figure out semantics of `parsed`.
+        """Returns a generator over a set of Users with queries.
+
+        
         """
         raise NotImplementedError()
 
     def get_users_with_sessions(self, parsed=False):
-        """
-        Returns a generator over a set of Users with queries and sessions.
+        """Returns a generator over a set of Users with queries and sessions.
         """
         raise NotImplementedError()
     
     def extract_sessions_from_user(self, user, remove_suspicious=True):
+        """Extract sessions from the given users' queries.
+
+        :param self: The current source object
+        :type self: queryutils.DataSource 
+        :param user: The user whose queries to sessionize
+        :type user: queryutils.User
+        :param remove_suspicious: Whether or not to remove queries labeled suspicious
+        :type remove_suspicious: bool
+        :rtype: None
+        """
         if len(user.interactive_queries) == 0: return
         session_id = 0
         user.interactive_queries.sort(key=lambda x: x.time)
@@ -83,21 +94,22 @@ class DataSource(object):
                 prev_time = curr_time
             query.delta = curr_time - prev_time
             if query.delta > NEW_SESSION_THRESH_SECS:
-                self.update_session_duration(user.sessions[session_id])
+                self._update_session_duration(user.sessions[session_id])
                 session_id += 1
                 session = Session(session_id, user)
                 user.sessions[session_id] = session
             prev_time = curr_time
             query.session = user.sessions[session_id]
             user.sessions[session_id].queries.append(query)
-        self.update_session_duration(user.sessions[session_id])
+        self._update_session_duration(user.sessions[session_id])
 
-    def update_session_duration(self, session):
+    def _update_session_duration(self, session):
         first_query = session.queries[0]
         last_query = session.queries[-1]
         session.duration = last_query.time - first_query.time
 
     def get_query_groups(self, multiple=True):
+        # TODO: Delete me?
         #users = { user.id: user for users in self.get_users() }
         iter = 0
         for query in self.get_interactive_queries():
@@ -127,6 +139,16 @@ class DataSource(object):
         #        yield qg
 
     def extract_command_stage(self, parsetree, commands):
+        """Extract the subtrees of the given parsetree that have one of the given commands.
+        
+        :param self: The current source object
+        :type self: queryutils.DataSource 
+        :param parsetree: The given parsetree from which to extract "STAGE" subtrees
+        :type parsetree: splparser.ParseTreeNode
+        :param commands: The list of commands to match against
+        :type commands: list
+        :rtype: generator
+        """
         if parsetree is not None:
             count = -1
             for node in parsetree.itertree():
@@ -137,6 +159,14 @@ class DataSource(object):
                         yield node, count
 
     def get_unique_stages(self, commands):
+        """Return a generator over unique stages whose command matches one of the given types.
+
+        :param self: The current source object
+        :type self: queryutils.DataSource 
+        :param commands: The list of commands to match against
+        :type commands: list
+        :rtype: generator
+        """
         seen = set()
         iter = 0
         for parsetree in self.get_parsetrees():
@@ -155,17 +185,38 @@ class DataSource(object):
             iter += 1
 
     def get_unique_filters(self):
+        """Return all unique stages that are "Filter" types.
+        
+        :param self: The current source object
+        :type self: queryutils.DataSource 
+        :rtype: generator
+        """
+        # TODO: Reimplement using splunktypes lookup instead of list!
         filters = ["dedup", "head", "regex", "search", "tail", "where", "uniq"]
         for filter in self.get_unique_stages(filters):
             yield filter
 
     def get_unique_aggregates(self):
+        """Return all unique stages that are "Aggregate" types.
+        
+        :param self: The current source object
+        :type self: queryutils.DataSource 
+        :rtype: generator
+        """
+        # TODO: Reimplement using splunktypes lookup instead of list!
         aggregates = ["addtotals", "addcoltotals", "chart", "eventcount", "geostats", 
             "mvcombine", "rare", "stats", "timechart", "top", "transaction", "tstats"]
         for aggregate in self.get_unique_stages(aggregates):
             yield aggregate
 
     def get_unique_augments(self):
+        """Return all unique stages that are "Augment" types.
+
+        :param self: The current source object
+        :type self: queryutils.DataSource 
+        :rtype: generator
+        """
+        # TODO: Reimplement using splunktypes lookup instead of list!
         augments = ["addinfo", "addtotals", "appendcols", "bin", "bucket", 
             "eval", "eventstats", "extract", "gauge", "iplocation", "kv", "outputtext",
             "rangemap", "relevancy", "rex", "spath", "strcat", "tags", "xmlkv"]
