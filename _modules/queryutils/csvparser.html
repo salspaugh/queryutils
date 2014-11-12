@@ -1,0 +1,288 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.csvparser &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for queryutils.csvparser</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">dateutil.parser</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">splparser.parser</span>
+
+<span class="kn">from</span> <span class="nn">user</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">query</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span> <span class="k">as</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">path</span>
+<span class="kn">from</span> <span class="nn">splparser.exceptions</span> <span class="kn">import</span> <span class="n">SPLSyntaxError</span><span class="p">,</span> <span class="n">TerminatingSPLSyntaxError</span>
+
+
+<span class="n">BYTES_IN_MB</span> <span class="o">=</span> <span class="mi">1048576</span>
+<span class="n">LIMIT</span> <span class="o">=</span> <span class="mi">2000</span><span class="o">*</span><span class="n">BYTES_IN_MB</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s">&quot;queryutils&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_users_from_file"><a class="viewcode-back" href="../../queryutils.csvparser.html#queryutils.csvparser.get_users_from_file">[docs]</a><span class="k">def</span> <span class="nf">get_users_from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">users</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Populate the users dictionary with users and their queris from the given file.</span>
+
+<span class="sd">    :param filename: The .csv file containing user queries</span>
+<span class="sd">    :type filename: str</span>
+<span class="sd">    :param users: The user dict into which to place the users</span>
+<span class="sd">    :type users: dict</span>
+<span class="sd">    :rtype: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Reading from file:&quot;</span> <span class="o">+</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="n">first</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">datafile</span><span class="p">:</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">datafile</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Attempting to read row.&quot;</span><span class="p">)</span>
+
+            <span class="c"># Get basic user information.</span>
+            <span class="n">username</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;user&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">username</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">username</span> <span class="o">=</span> <span class="nb">unicode</span><span class="p">(</span><span class="n">username</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span>
+
+            <span class="n">case</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;case_id&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">case</span> <span class="o">=</span> <span class="nb">unicode</span><span class="p">(</span><span class="n">case</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span>
+
+            <span class="c"># Check if we&#39;ve seen this user before.</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">userhash</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="k">if</span> <span class="n">username</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">userhash</span> <span class="o">=</span> <span class="s">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">username</span><span class="p">,</span> <span class="n">case</span><span class="p">])</span>
+                <span class="n">user</span> <span class="o">=</span> <span class="n">users</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">userhash</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">username</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">case</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">userhash</span> <span class="o">=</span> <span class="n">username</span>
+                <span class="n">user</span> <span class="o">=</span> <span class="n">users</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">userhash</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">userhash</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+                <span class="n">user</span> <span class="o">=</span> <span class="n">users</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">userhash</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+                <span class="n">users</span><span class="p">[</span><span class="n">userhash</span><span class="p">]</span> <span class="o">=</span> <span class="n">user</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">case_id</span> <span class="o">=</span> <span class="n">case</span>
+
+            <span class="c"># Get basic query information.</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;_time&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">timestamp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">timestamp</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dateutil</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">.</span><span class="si">%f</span><span class="s">&#39;</span><span class="p">))</span>
+
+            <span class="n">querystring</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;search&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">querystring</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">querystring</span> <span class="o">=</span> <span class="nb">unicode</span><span class="p">(</span><span class="n">querystring</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+            <span class="c"># Tie the query and the user together.</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">querystring</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
+           
+            <span class="c"># Get additional query information and add it to the query.</span>
+            <span class="n">runtime</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;runtime&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">runtime</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">runtime</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;total_run_time&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">runtime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">runtime</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">runtime</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">runtime</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">execution_time</span> <span class="o">=</span> <span class="n">runtime</span>
+
+            <span class="n">search_et</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;search_et&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">search_et</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">search_et</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">search_et</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">search_et</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">earliest_event</span> <span class="o">=</span> <span class="n">search_et</span>
+
+            <span class="n">search_lt</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;search_lt&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">search_lt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">search_lt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">search_lt</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">search_lt</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">latest_event</span> <span class="o">=</span> <span class="n">search_lt</span>
+
+            <span class="nb">range</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;range&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="nb">range</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">range</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="nb">range</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="nb">range</span>
+
+            <span class="n">is_realtime</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;is_realtime&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_realtime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">is_realtime</span> <span class="o">==</span> <span class="s">&quot;false&quot;</span><span class="p">:</span>
+                <span class="n">is_realtime</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">if</span> <span class="n">is_realtime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">is_realtime</span> <span class="o">==</span> <span class="s">&quot;true&quot;</span><span class="p">:</span>
+                <span class="n">is_realtime</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">is_realtime</span> <span class="o">=</span> <span class="n">is_realtime</span>
+
+            <span class="n">searchtype</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;searchtype&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">searchtype</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">searchtype</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;search_type&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">searchtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">searchtype</span> <span class="o">=</span> <span class="nb">unicode</span><span class="p">(</span><span class="n">searchtype</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">search_type</span> <span class="o">=</span> <span class="n">searchtype</span>
+            <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">search_type</span> <span class="o">==</span> <span class="s">&quot;adhoc&quot;</span><span class="p">:</span>
+                <span class="n">query</span><span class="o">.</span><span class="n">is_interactive</span> <span class="o">=</span> <span class="bp">True</span>
+
+            <span class="n">splunk_id</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;search_id&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">splunk_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">splunk_id</span> <span class="o">=</span> <span class="nb">unicode</span><span class="p">(</span><span class="n">splunk_id</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">splunk_search_id</span> <span class="o">=</span> <span class="n">splunk_id</span>
+
+            <span class="n">savedsearch_name</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;savedsearch_name&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">savedsearch_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">savedsearch_name</span> <span class="o">=</span> <span class="nb">unicode</span><span class="p">(</span><span class="n">savedsearch_name</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">))</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">saved_search_name</span> <span class="o">=</span> <span class="n">savedsearch_name</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Successfully read query.&quot;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="get_users_from_directory"><a class="viewcode-back" href="../../queryutils.csvparser.html#queryutils.csvparser.get_users_from_directory">[docs]</a><span class="k">def</span> <span class="nf">get_users_from_directory</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">users</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">LIMIT</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Populate the users dict with users from the .csv files.</span>
+
+<span class="sd">    :param directory: The path to the directory containing the .csv files </span>
+<span class="sd">    :type directory: str</span>
+<span class="sd">    :param users: The dict to contain the users read from the .csv files</span>
+<span class="sd">    :type users: dict</span>
+<span class="sd">    :param limit: The approximate number of bytes to read in (for testing)</span>
+<span class="sd">    :type limit: int</span>
+<span class="sd">    :rtype: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">raw_data_files</span> <span class="o">=</span> <span class="n">get_csv_files</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">raw_data_files</span><span class="p">:</span>
+        <span class="n">get_users_from_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">users</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="get_csv_files"><a class="viewcode-back" href="../../queryutils.csvparser.html#queryutils.csvparser.get_csv_files">[docs]</a><span class="k">def</span> <span class="nf">get_csv_files</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">LIMIT</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the paths to all the .csv files in the given directory.</span>
+
+<span class="sd">    :param dir: The path to the given directory</span>
+<span class="sd">    :type dir: str</span>
+<span class="sd">    :param limit: The approximate number of bytes to read in (for testing)</span>
+<span class="sd">    :type limit: int</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">csv_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">bytes_added</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">dirnames</span><span class="p">,</span> <span class="n">filenames</span><span class="p">)</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="nb">dir</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s">&#39;.csv&#39;</span><span class="p">:</span> 
+                <span class="n">full_filename</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="nb">dir</span><span class="p">),</span> <span class="n">filename</span><span class="p">)</span>
+                <span class="n">csv_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_filename</span><span class="p">)</span> 
+                <span class="n">bytes_added</span> <span class="o">+=</span> <span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">full_filename</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">bytes_added</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">csv_files</span>
+    <span class="k">return</span> <span class="n">csv_files</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">API documentation</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

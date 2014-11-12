@@ -1,0 +1,323 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.splunktypes &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for queryutils.splunktypes</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">splparser.parsetree</span> <span class="kn">import</span> <span class="n">ParseTreeNode</span>
+<span class="kn">from</span> <span class="nn">parse</span> <span class="kn">import</span> <span class="n">tokenize_query</span>
+
+<span class="n">category</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&quot;abstract&quot;</span><span class="p">:</span> <span class="s">&quot;Miscellaneous&quot;</span><span class="p">,</span>
+    <span class="s">&quot;addcoltotals&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;addinfo&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;addtotals col&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;addtotals row&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;addtotals&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;anomalies&quot;</span><span class="p">:</span> <span class="s">&quot;Window&quot;</span><span class="p">,</span>
+    <span class="s">&quot;append&quot;</span><span class="p">:</span> <span class="s">&quot;Set&quot;</span><span class="p">,</span>
+    <span class="s">&quot;appendcols&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;appendpipe&quot;</span><span class="p">:</span> <span class="s">&quot;Set&quot;</span><span class="p">,</span>
+    <span class="s">&quot;audit&quot;</span><span class="p">:</span> <span class="s">&quot;Read Metadata&quot;</span><span class="p">,</span>
+    <span class="s">&quot;bin&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span> <span class="c"># alias for bucket</span>
+    <span class="s">&quot;bucket&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;chart&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;collect&quot;</span><span class="p">:</span> <span class="s">&quot;Cache&quot;</span><span class="p">,</span>
+    <span class="s">&quot;convert&quot;</span><span class="p">:</span> <span class="s">&quot;Transform&quot;</span><span class="p">,</span>
+    <span class="s">&quot;contingency&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;counttable&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;datamodel&quot;</span><span class="p">:</span> <span class="s">&quot;Input&quot;</span><span class="p">,</span>
+    <span class="s">&quot;dbinspect&quot;</span><span class="p">:</span> <span class="s">&quot;Read Metadata&quot;</span><span class="p">,</span>
+    <span class="s">&quot;dbquery&quot;</span><span class="p">:</span> <span class="s">&quot;Input&quot;</span><span class="p">,</span>
+    <span class="s">&quot;dedup&quot;</span><span class="p">:</span> <span class="s">&quot;Filter&quot;</span><span class="p">,</span>
+    <span class="s">&quot;delete&quot;</span><span class="p">:</span> <span class="s">&quot;Meta&quot;</span><span class="p">,</span>
+    <span class="s">&quot;delta&quot;</span><span class="p">:</span> <span class="s">&quot;Window&quot;</span><span class="p">,</span>
+    <span class="s">&quot;eval&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;eventcount&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;eventstats&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span> <span class="c"># aggregation and projection</span>
+    <span class="s">&quot;export&quot;</span><span class="p">:</span> <span class="s">&quot;Output&quot;</span><span class="p">,</span>
+    <span class="s">&quot;extract&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;fieldformat&quot;</span><span class="p">:</span> <span class="s">&quot;Transform&quot;</span><span class="p">,</span>
+    <span class="s">&quot;fields&quot;</span><span class="p">:</span> <span class="s">&quot;Project&quot;</span><span class="p">,</span>
+    <span class="s">&quot;filldown&quot;</span><span class="p">:</span> <span class="s">&quot;Transform&quot;</span><span class="p">,</span>
+    <span class="s">&quot;fillnull&quot;</span><span class="p">:</span> <span class="s">&quot;Transform&quot;</span><span class="p">,</span>
+    <span class="s">&quot;format&quot;</span><span class="p">:</span> <span class="s">&quot;Miscellaneous&quot;</span><span class="p">,</span>
+    <span class="s">&quot;gauge&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;geostats&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;geoip&quot;</span><span class="p">:</span> <span class="s">&quot;Join&quot;</span><span class="p">,</span>
+    <span class="s">&quot;head&quot;</span><span class="p">:</span> <span class="s">&quot;Filter&quot;</span><span class="p">,</span>
+    <span class="s">&quot;history&quot;</span><span class="p">:</span> <span class="s">&quot;Read Metadata&quot;</span><span class="p">,</span>
+    <span class="s">&quot;inputcsv&quot;</span><span class="p">:</span> <span class="s">&quot;Input&quot;</span><span class="p">,</span>
+    <span class="s">&quot;inputlookup&quot;</span><span class="p">:</span> <span class="s">&quot;Input&quot;</span><span class="p">,</span>
+    <span class="s">&quot;iplocation&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;join&quot;</span><span class="p">:</span> <span class="s">&quot;Join&quot;</span><span class="p">,</span>
+    <span class="s">&quot;kv&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;loadjob&quot;</span><span class="p">:</span> <span class="s">&quot;Input&quot;</span><span class="p">,</span>
+    <span class="s">&quot;localop&quot;</span><span class="p">:</span> <span class="s">&quot;Meta&quot;</span><span class="p">,</span>
+    <span class="s">&quot;lookup&quot;</span><span class="p">:</span> <span class="s">&quot;Join&quot;</span><span class="p">,</span>
+    <span class="s">&quot;macro&quot;</span><span class="p">:</span> <span class="s">&quot;Macro&quot;</span><span class="p">,</span>
+    <span class="s">&quot;makemv&quot;</span><span class="p">:</span> <span class="s">&quot;Transform&quot;</span><span class="p">,</span>
+    <span class="s">&quot;map&quot;</span><span class="p">:</span> <span class="s">&quot;Miscellaneous&quot;</span><span class="p">,</span>
+    <span class="s">&quot;metadata&quot;</span><span class="p">:</span> <span class="s">&quot;Input&quot;</span><span class="p">,</span>
+    <span class="s">&quot;metasearch&quot;</span><span class="p">:</span> <span class="s">&quot;Meta&quot;</span><span class="p">,</span>
+    <span class="s">&quot;multikv&quot;</span><span class="p">:</span> <span class="s">&quot;Transform&quot;</span><span class="p">,</span>
+    <span class="s">&quot;mvcombine&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;mvexpand&quot;</span><span class="p">:</span> <span class="s">&quot;Transform&quot;</span><span class="p">,</span>
+    <span class="s">&quot;nomv&quot;</span><span class="p">:</span> <span class="s">&quot;Transform&quot;</span><span class="p">,</span>
+    <span class="s">&quot;noop&quot;</span><span class="p">:</span> <span class="s">&quot;Miscellaneous&quot;</span><span class="p">,</span>
+    <span class="s">&quot;outlier&quot;</span><span class="p">:</span> <span class="s">&quot;Transform&quot;</span><span class="p">,</span>
+    <span class="s">&quot;outputcsv&quot;</span><span class="p">:</span> <span class="s">&quot;Output&quot;</span><span class="p">,</span>
+    <span class="s">&quot;outputlookup&quot;</span><span class="p">:</span> <span class="s">&quot;Output&quot;</span><span class="p">,</span>
+    <span class="s">&quot;outputtext&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;overlap&quot;</span><span class="p">:</span> <span class="s">&quot;Miscellaneous&quot;</span><span class="p">,</span>
+    <span class="s">&quot;rangemap&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;rare&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;regex&quot;</span><span class="p">:</span> <span class="s">&quot;Filter&quot;</span><span class="p">,</span>
+    <span class="s">&quot;relevancy&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;rename&quot;</span><span class="p">:</span> <span class="s">&quot;Rename&quot;</span><span class="p">,</span>
+    <span class="s">&quot;replace&quot;</span><span class="p">:</span> <span class="s">&quot;Transform&quot;</span><span class="p">,</span>
+    <span class="s">&quot;rest&quot;</span><span class="p">:</span> <span class="s">&quot;Input&quot;</span><span class="p">,</span>
+    <span class="s">&quot;return&quot;</span><span class="p">:</span> <span class="s">&quot;Miscellaneous&quot;</span><span class="p">,</span>
+    <span class="s">&quot;reverse&quot;</span><span class="p">:</span> <span class="s">&quot;Reorder&quot;</span><span class="p">,</span>
+    <span class="s">&quot;rex&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;savedsearch&quot;</span><span class="p">:</span> <span class="s">&quot;Input&quot;</span><span class="p">,</span>
+    <span class="s">&quot;search&quot;</span><span class="p">:</span> <span class="s">&quot;Filter&quot;</span><span class="p">,</span>
+    <span class="s">&quot;sendemail&quot;</span><span class="p">:</span> <span class="s">&quot;Output&quot;</span><span class="p">,</span>
+    <span class="s">&quot;set&quot;</span><span class="p">:</span> <span class="s">&quot;Set&quot;</span><span class="p">,</span>
+    <span class="s">&quot;sichart&quot;</span><span class="p">:</span> <span class="s">&quot;Cache&quot;</span><span class="p">,</span>
+    <span class="s">&quot;sirare&quot;</span><span class="p">:</span> <span class="s">&quot;Cache&quot;</span><span class="p">,</span>
+    <span class="s">&quot;sistats&quot;</span><span class="p">:</span> <span class="s">&quot;Cache&quot;</span><span class="p">,</span>
+    <span class="s">&quot;sitimechart&quot;</span><span class="p">:</span> <span class="s">&quot;Cache&quot;</span><span class="p">,</span>
+    <span class="s">&quot;sitop&quot;</span><span class="p">:</span> <span class="s">&quot;Cache&quot;</span><span class="p">,</span>
+    <span class="s">&quot;sort&quot;</span><span class="p">:</span> <span class="s">&quot;Reorder&quot;</span><span class="p">,</span>
+    <span class="s">&quot;spath&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;stats&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;strcat&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;streamstats&quot;</span><span class="p">:</span> <span class="s">&quot;Window&quot;</span><span class="p">,</span>
+    <span class="s">&quot;summaryindex&quot;</span><span class="p">:</span> <span class="s">&quot;Cache&quot;</span><span class="p">,</span>
+    <span class="s">&quot;summarize&quot;</span><span class="p">:</span> <span class="s">&quot;Cache&quot;</span><span class="p">,</span>
+    <span class="s">&quot;table&quot;</span><span class="p">:</span> <span class="s">&quot;Project&quot;</span><span class="p">,</span>
+    <span class="s">&quot;tags&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+    <span class="s">&quot;tail&quot;</span><span class="p">:</span> <span class="s">&quot;Filter&quot;</span><span class="p">,</span>
+    <span class="s">&quot;timechart&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;timewrap&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;top&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;transaction&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;transpose&quot;</span><span class="p">:</span> <span class="s">&quot;Transpose&quot;</span><span class="p">,</span>
+    <span class="s">&quot;tscollect&quot;</span><span class="p">:</span> <span class="s">&quot;Cache&quot;</span><span class="p">,</span>
+    <span class="s">&quot;tstats&quot;</span><span class="p">:</span> <span class="s">&quot;Aggregate&quot;</span><span class="p">,</span>
+    <span class="s">&quot;typeahead&quot;</span><span class="p">:</span> <span class="s">&quot;Read Metadata&quot;</span><span class="p">,</span>
+    <span class="s">&quot;uniq&quot;</span><span class="p">:</span> <span class="s">&quot;Filter&quot;</span><span class="p">,</span>
+    <span class="s">&quot;where&quot;</span><span class="p">:</span> <span class="s">&quot;Filter&quot;</span><span class="p">,</span>
+    <span class="s">&quot;xmlkv&quot;</span><span class="p">:</span> <span class="s">&quot;Augment&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<div class="viewcode-block" id="lookup_categories"><a class="viewcode-back" href="../../queryutils.splunktypes.html#queryutils.splunktypes.lookup_categories">[docs]</a><span class="k">def</span> <span class="nf">lookup_categories</span><span class="p">(</span><span class="n">querystring</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lookup the category for each command in the query and return them in a list in order.</span>
+<span class="sd">    </span>
+<span class="sd">    :param querystring: The query whose commands will be looked up</span>
+<span class="sd">    :type querystring: str</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokenize_query</span><span class="p">(</span><span class="n">querystring</span><span class="p">)</span>
+    <span class="n">categories</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">token</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tokens</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;EXTERNAL_COMMAND&quot;</span><span class="p">:</span>
+            <span class="n">categories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">category</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">token</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s">&quot;Miscellaneous&quot;</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">token</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;MACRO&quot;</span><span class="p">:</span>
+            <span class="n">categories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot;Macro&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">token</span><span class="o">.</span><span class="n">type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;ARGS&quot;</span><span class="p">,</span> <span class="s">&quot;PIPE&quot;</span><span class="p">,</span> <span class="s">&quot;LBRACKET&quot;</span><span class="p">,</span> <span class="s">&quot;RBRACKET&quot;</span><span class="p">]:</span>
+            <span class="n">command</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="c"># Note: This is an imperfect way to detect this.</span>
+            <span class="c"># See below for an example.</span>
+            <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="s">&quot;addtotals&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="n">command</span> <span class="o">=</span> <span class="s">&quot;addtotals row&quot;</span>
+                <span class="k">elif</span> <span class="n">tokens</span><span class="p">[</span><span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;row&quot;</span><span class="p">:</span>
+                    <span class="n">command</span> <span class="o">=</span> <span class="s">&quot;addtotals row&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">command</span> <span class="o">=</span> <span class="s">&quot;addtotals col&quot;</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">categories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lookup_category</span><span class="p">(</span><span class="n">command</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Unknown command type: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">token</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">categories</span>
+
+</div>
+<div class="viewcode-block" id="lookup_category"><a class="viewcode-back" href="../../queryutils.splunktypes.html#queryutils.splunktypes.lookup_category">[docs]</a><span class="k">def</span> <span class="nf">lookup_category</span><span class="p">(</span><span class="n">node_or_string</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the category of the given command string or the command in the stage parsetree.</span>
+
+<span class="sd">    :param node_or_string: The command in string form or the STAGE ParseTreeNode</span>
+<span class="sd">    :type node_or_string: str or splparser.parsetree.ParseTreeNode</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node_or_string</span><span class="p">,</span> <span class="n">ParseTreeNode</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">category</span><span class="p">[</span><span class="n">node_or_string</span><span class="p">]</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="n">node_or_string</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">raw</span>
+    <span class="k">if</span> <span class="n">command</span> <span class="o">==</span> <span class="s">&quot;addtotals&quot;</span><span class="p">:</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="n">detect_addtotals_type</span><span class="p">(</span><span class="n">node_or_string</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">category</span><span class="p">[</span><span class="n">command</span><span class="p">]</span>
+
+</div>
+<div class="viewcode-block" id="detect_addtotals_type"><a class="viewcode-back" href="../../queryutils.splunktypes.html#queryutils.splunktypes.detect_addtotals_type">[docs]</a><span class="k">def</span> <span class="nf">detect_addtotals_type</span><span class="p">(</span><span class="n">stagenode</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Detect whether addtotals was called row-wise or column-wise.</span>
+
+<span class="sd">    The addtotals command is an SPL command that has different behavior</span>
+<span class="sd">    depending on whether or not the row option passed to it is true or</span>
+<span class="sd">    the column option passed to it is true. In the first case, the </span>
+<span class="sd">    command adds the fields in an event and creates a new total field for</span>
+<span class="sd">    each event. In the second it sums the values of each field across </span>
+<span class="sd">    events and creates a new event containing the totals. The default</span>
+<span class="sd">    is to sum row-wise. These two cases fall into distinct categories, this</span>
+<span class="sd">    is why this detection is necessary.</span>
+
+<span class="sd">    If it is called row-wise, then the string &quot;addtotals row&quot; is returned, </span>
+<span class="sd">    which can be used to look up the corresponding category in the categories</span>
+<span class="sd">    dictionary in this module. Otherwise, &quot;addtotals col&quot; is returned, which</span>
+<span class="sd">    can be used similarly.</span>
+
+<span class="sd">    :param stagenode: The parsetree node of role &quot;STAGE&quot; that has a command to lookup</span>
+<span class="sd">    :type stagenode: ParseTreeNode</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># TODO: Check that this represents an addtotals stage!</span>
+    <span class="n">optionnodes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">stagenode</span><span class="o">.</span><span class="n">itertree</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s">&quot;EQ&quot;</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s">&quot;OPTION&quot;</span><span class="p">:</span>
+            <span class="n">optionnodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">optionnode</span> <span class="ow">in</span> <span class="n">optionnodes</span><span class="p">:</span>
+        <span class="n">paramnode</span> <span class="o">=</span> <span class="n">optionnode</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">valuenode</span> <span class="o">=</span> <span class="n">optionnode</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">detect_truth_value</span><span class="p">(</span><span class="n">valuenode</span><span class="o">.</span><span class="n">raw</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">and</span> <span class="n">paramnode</span><span class="o">.</span><span class="n">raw</span> <span class="o">==</span> <span class="s">&quot;col&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&quot;addtotals col&quot;</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">and</span> <span class="n">paramnode</span><span class="o">.</span><span class="n">raw</span> <span class="o">==</span> <span class="s">&quot;row&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&quot;addtotals row&quot;</span>
+    <span class="k">return</span> <span class="s">&quot;addtotals row&quot;</span>
+
+</div>
+<div class="viewcode-block" id="detect_truth_value"><a class="viewcode-back" href="../../queryutils.splunktypes.html#queryutils.splunktypes.detect_truth_value">[docs]</a><span class="k">def</span> <span class="nf">detect_truth_value</span><span class="p">(</span><span class="n">astring</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Detect whether the given string represents a True or False.</span>
+
+<span class="sd">    :param astring: The string to detect the truth value of</span>
+<span class="sd">    :type astring: str</span>
+<span class="sd">    :rtype: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="k">if</span> <span class="n">astring</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;true&quot;</span><span class="p">,</span> <span class="s">&quot;t&quot;</span><span class="p">]:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">valuenode</span><span class="o">.</span><span class="n">raw</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">value</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">API documentation</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

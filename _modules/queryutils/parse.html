@@ -1,0 +1,271 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.parse &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for queryutils.parse</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">splparser</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">splparse</span>
+<span class="kn">from</span> <span class="nn">splparser.lexers.toplevellexer</span> <span class="kn">import</span> <span class="n">tokenize</span> <span class="k">as</span> <span class="n">spltokenize</span>
+<span class="kn">from</span> <span class="nn">.query</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span> <span class="k">as</span> <span class="n">get_logger</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s">&quot;queryutils&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="lookup_commands"><a class="viewcode-back" href="../../queryutils.parse.html#queryutils.parse.lookup_commands">[docs]</a><span class="k">def</span> <span class="nf">lookup_commands</span><span class="p">(</span><span class="n">querystring</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extract the list of commands from the query.</span>
+
+<span class="sd">    :param querystring: The query to extract commands from</span>
+<span class="sd">    :type querystring: str</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">commands</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokenize_query</span><span class="p">(</span><span class="n">querystring</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;EXTERNAL_COMMAND&quot;</span><span class="p">:</span>
+            <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">token</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;MACRO&quot;</span><span class="p">:</span>
+            <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">token</span><span class="o">.</span><span class="n">type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;ARGS&quot;</span><span class="p">,</span> <span class="s">&quot;PIPE&quot;</span><span class="p">,</span> <span class="s">&quot;LBRACKET&quot;</span><span class="p">,</span> <span class="s">&quot;RBRACKET&quot;</span><span class="p">]:</span>
+            <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">commands</span>
+</div>
+<div class="viewcode-block" id="extract_schema"><a class="viewcode-back" href="../../queryutils.parse.html#queryutils.parse.extract_schema">[docs]</a><span class="k">def</span> <span class="nf">extract_schema</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the schema for the query.</span>
+<span class="sd">    </span>
+<span class="sd">    This functionality is experimental.</span>
+
+<span class="sd">    :param query: The query string for which to extract the schema</span>
+<span class="sd">    :type query: str</span>
+<span class="sd">    :rtype: splparser.schema.Schema</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parsetree</span> <span class="o">=</span> <span class="n">parse_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">parsetree</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">parsetree</span><span class="o">.</span><span class="n">schema</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="extract_template"><a class="viewcode-back" href="../../queryutils.parse.html#queryutils.parse.extract_template">[docs]</a><span class="k">def</span> <span class="nf">extract_template</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the template for the query.</span>
+
+<span class="sd">    :param query: The query string for which to extract the template</span>
+<span class="sd">    :type query: str</span>
+<span class="sd">    :rtype: splparser.parsetree.ParseTreeNode</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parsetree</span> <span class="o">=</span> <span class="n">parse_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">parsetree</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">parsetree</span><span class="o">.</span><span class="n">template</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="tag_parseable"><a class="viewcode-back" href="../../queryutils.parse.html#queryutils.parse.tag_parseable">[docs]</a><span class="k">def</span> <span class="nf">tag_parseable</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;TODO: Delete me.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">query</span><span class="o">.</span><span class="n">parseable</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">query</span><span class="o">.</span><span class="n">parsetree</span> <span class="o">=</span> <span class="n">parse_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">parsetree</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">query</span><span class="o">.</span><span class="n">parseable</span> <span class="o">=</span> <span class="bp">True</span>
+</div>
+<div class="viewcode-block" id="split_query_into_stages"><a class="viewcode-back" href="../../queryutils.parse.html#queryutils.parse.split_query_into_stages">[docs]</a><span class="k">def</span> <span class="nf">split_query_into_stages</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Split the query into stages.</span>
+
+<span class="sd">    This takes a query string and returns a list of strings that represent the </span>
+<span class="sd">    query stages. This is trickier than just calling split(&#39;|&#39;) because the</span>
+<span class="sd">    pipe character is a valid argument to commands if quoted.</span>
+
+<span class="sd">    :param query: The query to split</span>
+<span class="sd">    :type query: str</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stages</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">current_stage</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">subsearch</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">tokenize_query</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;LBRACKET&quot;</span><span class="p">:</span>
+            <span class="n">subsearch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+            <span class="n">current_stage</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">token</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">continue</span>
+        
+        <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;RBRACKET&quot;</span><span class="p">:</span>
+            <span class="n">current_stage</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">token</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">subsearch</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subsearch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">stages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_stage</span><span class="p">))</span>
+                <span class="n">current_stage</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subsearch</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">current_stage</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">token</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">continue</span> 
+
+        <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;PIPE&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_stage</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">stages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_stage</span><span class="p">))</span>
+            <span class="n">current_stage</span> <span class="o">=</span> <span class="p">[</span><span class="n">token</span><span class="o">.</span><span class="n">value</span><span class="p">]</span>
+            <span class="k">continue</span>
+            
+        <span class="n">current_stage</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">token</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+   
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_stage</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">stages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_stage</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">stages</span>
+</div>
+<div class="viewcode-block" id="parse_query"><a class="viewcode-back" href="../../queryutils.parse.html#queryutils.parse.parse_query">[docs]</a><span class="k">def</span> <span class="nf">parse_query</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse the given query if possible.</span>
+
+<span class="sd">    This function is a small wrapper for splparser&#39;s parse function that </span>
+<span class="sd">    handles unicode issues and logs errors and returns None in the case of</span>
+<span class="sd">    an error rather than raising an exception.</span>
+
+<span class="sd">    :param query: The query to parse</span>
+<span class="sd">    :type query: str</span>
+<span class="sd">    :rtype: splparser.parsetree.ParseTreeNode</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">))</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="p">)</span> <span class="o">==</span> <span class="nb">unicode</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">))</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="nb">unicode</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">parsetree</span> <span class="o">=</span> <span class="n">splparse</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s">&quot;Failed to parse query: &quot;</span> <span class="o">+</span> <span class="n">q</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">None</span>
+    <span class="k">return</span> <span class="n">parsetree</span>
+</div>
+<div class="viewcode-block" id="parse_queries"><a class="viewcode-back" href="../../queryutils.parse.html#queryutils.parse.parse_queries">[docs]</a><span class="k">def</span> <span class="nf">parse_queries</span><span class="p">(</span><span class="n">queries</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;TODO: Delete me.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parsetrees</span> <span class="o">=</span> <span class="p">[</span><span class="n">parse_query</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span> <span class="n">parsetrees</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="tokenize_query"><a class="viewcode-back" href="../../queryutils.parse.html#queryutils.parse.tokenize_query">[docs]</a><span class="k">def</span> <span class="nf">tokenize_query</span><span class="p">(</span><span class="n">query</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Tokenize the given query if possible.</span>
+
+<span class="sd">    This function is a wrapper for splparser&#39;s tokenizer that handles</span>
+<span class="sd">    unicode issues and logs errors and returns None in the case of an</span>
+<span class="sd">    error rather than raising an exception.</span>
+
+<span class="sd">    :param query: The query to tokenize</span>
+<span class="sd">    :type query: str</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">))</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="p">)</span> <span class="o">==</span> <span class="nb">unicode</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">))</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="nb">unicode</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf8&quot;</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">tokens</span> <span class="o">=</span> <span class="n">spltokenize</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> 
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s">&quot;Failed to tokenize query: &quot;</span> <span class="o">+</span> <span class="n">q</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">None</span>
+    <span class="k">return</span> <span class="n">tokens</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">API documentation</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

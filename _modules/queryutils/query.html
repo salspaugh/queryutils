@@ -1,0 +1,277 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.query &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for queryutils.query</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">json</span> <span class="kn">import</span> <span class="n">JSONEncoder</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">ceil</span><span class="p">,</span> <span class="n">floor</span><span class="p">,</span> <span class="n">histogram</span><span class="p">,</span> <span class="n">log</span><span class="p">,</span> <span class="n">mean</span>
+
+<span class="n">EPSILON</span> <span class="o">=</span> <span class="mf">1e-4</span>
+<span class="n">ENTROPY_NBUCKETS</span> <span class="o">=</span> <span class="mf">1e4</span>
+<span class="n">MAX_INTERVAL</span> <span class="o">=</span> <span class="mf">1e6</span> <span class="c"># TODO: This shouldn&#39;t be hard-coded.</span>
+<span class="n">NCHARS</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">SECONDS</span> <span class="o">=</span> <span class="mf">30.</span>
+
+<span class="k">def</span> <span class="nf">wrap_text</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="n">text</span>
+    <span class="n">wrapped</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">current</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">NCHARS</span><span class="p">:</span>
+        <span class="n">wrapped</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current</span><span class="p">[:</span><span class="n">NCHARS</span><span class="p">])</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="n">NCHARS</span><span class="p">:]</span>
+    <span class="n">wrapped</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s">&quot;</span><span class="se">\n\t\t\t\t\t</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">wrapped</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">QueryGroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">query</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">copies</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">copies_this_user</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">copies</span> <span class="k">if</span> <span class="n">q</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">user_id</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">number_of_copies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">copies</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">number_of_copies_this_user</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">copies_this_user</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">number_of_distinct_users</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span><span class="o">.</span><span class="n">user_id</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">copies</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">u</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">interarrival_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">intervals</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">relevant_queries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copies_this_user</span><span class="p">()</span>
+        <span class="n">relevant_queries</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">query</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">relevant_queries</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">curr</span> <span class="o">=</span> <span class="n">query</span>
+            <span class="nb">next</span> <span class="o">=</span> <span class="n">relevant_queries</span><span class="p">[</span><span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">next</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="n">curr</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span> <span class="o">=</span> <span class="n">intervals</span>
+        <span class="k">return</span> <span class="n">intervals</span>
+
+    <span class="k">def</span> <span class="nf">interarrival_entropy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interarrival_intervals</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.</span>
+        <span class="n">hist</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">histogram</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">ENTROPY_NBUCKETS</span><span class="p">,</span>
+            <span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">MAX_INTERVAL</span><span class="p">),</span> <span class="n">normed</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="c"># TODO: `normed` is broken, use density, only available in numpy&gt;=?</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="nb">sum</span><span class="p">([(</span><span class="n">p</span><span class="p">)</span><span class="o">*</span><span class="n">log</span><span class="p">((</span><span class="n">p</span><span class="o">+</span><span class="n">EPSILON</span><span class="p">))</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">hist</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">interarrival_consistency</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interarrival_intervals</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">1.</span>
+        <span class="n">avg</span> <span class="o">=</span> <span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span><span class="p">)</span>
+        <span class="n">scaled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span> <span class="o">/</span> <span class="n">avg</span>
+        <span class="n">close</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="mf">1.1</span> <span class="ow">and</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="o">.</span><span class="mi">9</span> <span class="k">else</span> <span class="mf">0.</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">scaled</span><span class="p">]</span>
+        <span class="n">interarrival_consistency</span> <span class="o">=</span> <span class="n">mean</span><span class="p">(</span><span class="n">close</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">interarrival_consistency</span>
+
+    <span class="k">def</span> <span class="nf">interarrival_clockness</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interarrival_intervals</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mf">1.</span> <span class="c"># TODO: What is a reasonable value here?</span>
+        <span class="n">rounded</span> <span class="o">=</span> <span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span><span class="p">]</span>
+        <span class="n">clocked</span> <span class="o">=</span> <span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">n</span><span class="o">%</span><span class="n">SECONDS</span><span class="p">,</span> <span class="n">SECONDS</span> <span class="o">-</span> <span class="n">n</span><span class="o">%</span><span class="n">SECONDS</span><span class="p">)</span><span class="o">/</span><span class="n">SECONDS</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span><span class="p">]</span>
+        <span class="k">return</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">mean</span><span class="p">(</span><span class="n">clocked</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        ID: </span><span class="si">%s</span><span class="s"></span>
+<span class="s">        Query Text: </span><span class="si">%s</span><span class="s"></span>
+<span class="s">        This user: </span><span class="si">%s</span><span class="s"></span>
+<span class="s">        Copies: </span><span class="si">%d</span><span class="s"></span>
+<span class="s">        Distinct users: </span><span class="si">%d</span><span class="s"></span>
+<span class="s">        Entropy: </span><span class="si">%f</span><span class="s"></span>
+<span class="s">        Consistency: </span><span class="si">%f</span><span class="s"></span>
+<span class="s">        Clockness: </span><span class="si">%f</span><span class="s"></span>
+<span class="s">        Interarrivals: </span><span class="si">%s</span><span class="s"></span>
+<span class="s">        &quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">id</span><span class="p">),</span>
+            <span class="n">wrap_text</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">number_of_copies</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">number_of_distinct_users</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interarrival_entropy</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interarrival_consistency</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interarrival_clockness</span><span class="p">(),</span>
+            <span class="n">wrap_text</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interarrivals</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="Query"><a class="viewcode-back" href="../../queryutils.query.html#queryutils.query.Query">[docs]</a><span class="k">class</span> <span class="nc">Query</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A class representing a Splunk query and associated information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Query.__init__"><a class="viewcode-back" href="../../queryutils.query.html#queryutils.query.Query.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">time</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a Query object.</span>
+
+<span class="sd">        :param self: The current Query object</span>
+<span class="sd">        :type self: Query</span>
+<span class="sd">        :param text: The actual text of the query</span>
+<span class="sd">        :type text: str</span>
+<span class="sd">        :param time: The timestamp associated with the query in UNIX epoch time</span>
+<span class="sd">        :type time: float</span>
+<span class="sd">        :rtype: Query</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="k">if</span> <span class="n">time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">time</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_interactive</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_suspicious</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parsetree</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">execution_time</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">earliest_event</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latest_event</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="bp">None</span> <span class="c"># latest_event - earliest_event</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_realtime</span> <span class="o">=</span> <span class="bp">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">splunk_search_id</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">saved_search_name</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">),</span> <span class="s">&quot;: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">])</span>
+
+</div>
+<span class="k">class</span> <span class="nc">QueryType</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">INTERACTIVE</span> <span class="o">=</span> <span class="s">&quot;interactive&quot;</span>
+    <span class="n">SCHEDULED</span> <span class="o">=</span> <span class="s">&quot;scheduled&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">QueryEncoder</span><span class="p">(</span><span class="n">JSONEncoder</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="n">query_dict</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">__dict__</span>
+        <span class="n">query_dict</span><span class="p">[</span><span class="s">&#39;user&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">query_dict</span><span class="p">[</span><span class="s">&#39;is_interactive&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">is_interactive</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">obj</span><span class="o">.</span><span class="n">session</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">query_dict</span><span class="p">[</span><span class="s">&#39;session&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">return</span> <span class="n">query_dict</span>
+
+
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Query</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">JSONEncoder</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">API documentation</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

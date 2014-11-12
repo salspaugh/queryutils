@@ -1,0 +1,324 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.files &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for queryutils.files</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span> <span class="k">as</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">isfile</span><span class="p">,</span> <span class="n">isdir</span>
+<span class="kn">from</span> <span class="nn">queryutils.session</span> <span class="kn">import</span> <span class="n">Session</span>
+<span class="kn">from</span> <span class="nn">queryutils.parse</span> <span class="kn">import</span> <span class="n">parse_query</span>
+<span class="kn">from</span> <span class="nn">queryutils.versions</span> <span class="kn">import</span> <span class="n">Version</span>
+<span class="kn">from</span> <span class="nn">queryutils.source</span> <span class="kn">import</span> <span class="n">DataSource</span>
+
+<span class="n">NEW_SESSION_THRESH_SECS</span> <span class="o">=</span> <span class="mf">30.</span> <span class="o">*</span> <span class="mf">60.</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s">&quot;queryutils&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Files"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.Files">[docs]</a><span class="k">class</span> <span class="nc">Files</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents a source storing Splunk queries.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Files.__init__"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.Files.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a File object for accessing Splunk queries.</span>
+
+<span class="sd">        This should never be called directly. Instead, call the subclasses</span>
+<span class="sd">        of this class contained in this module (CSVFiles or JSONFiles).</span>
+
+<span class="sd">        :param self: The object being created</span>
+<span class="sd">        :type self: File</span>
+<span class="sd">        :param path: The path to the given file object</span>
+<span class="sd">        :type path: str</span>
+<span class="sd">        :param module: The module to read the data (jsonparser or csvparser)</span>
+<span class="sd">        :type module: module</span>
+<span class="sd">        :param version: The format the Splunk queries are in</span>
+<span class="sd">        :type version: str (one of the attributes of queryutils.Version)</span>
+<span class="sd">        :rtype: Files </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">module</span> <span class="o">=</span> <span class="n">module</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Files</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+</div>
+    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># TODO: Delete me?</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># TODO: Delete me?</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="Files.get_users"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.Files.get_users">[docs]</a>    <span class="k">def</span> <span class="nf">get_users</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a generator that yields users from the current source.</span>
+
+<span class="sd">        :param self: The current object</span>
+<span class="sd">        :type self: File</span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_users_with_queries</span><span class="p">():</span>
+            <span class="k">yield</span> <span class="n">user</span>
+</div>
+<div class="viewcode-block" id="Files.get_queries"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.Files.get_queries">[docs]</a>    <span class="k">def</span> <span class="nf">get_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a generator that yields queries from the current source.</span>
+<span class="sd">        </span>
+<span class="sd">        :param self: The current object</span>
+<span class="sd">        :type self: File</span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_users_with_queries</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">queries</span><span class="p">:</span>
+                <span class="n">query</span><span class="o">.</span><span class="n">query_id</span> <span class="o">=</span> <span class="n">count</span>
+                <span class="k">yield</span> <span class="n">query</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+</div>
+<div class="viewcode-block" id="Files.get_parsetrees"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.Files.get_parsetrees">[docs]</a>    <span class="k">def</span> <span class="nf">get_parsetrees</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a generator that yields parsetrees from the current source.</span>
+
+<span class="sd">        :param self: The current object</span>
+<span class="sd">        :type self: File</span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_queries</span><span class="p">():</span>
+            <span class="n">parsetree</span> <span class="o">=</span> <span class="n">parse_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">parsetree</span><span class="p">:</span>
+                <span class="n">parsetree</span><span class="o">.</span><span class="n">query_id</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">query_id</span>
+                <span class="k">yield</span> <span class="n">parsetree</span>
+</div>
+<div class="viewcode-block" id="Files.get_sessions"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.Files.get_sessions">[docs]</a>    <span class="k">def</span> <span class="nf">get_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a generator that yields sessions from the current source.</span>
+
+<span class="sd">        :param self: The current object</span>
+<span class="sd">        :type self: File</span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">texts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_possibly_suspicious_texts</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_users</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_noninteractive_queries_by_search_type</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">suspicious</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_suspicious_queries</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">texts</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extract_sessions_from_user</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">sessions</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                <span class="k">yield</span> <span class="n">session</span>
+</div>
+    <span class="k">def</span> <span class="nf">get_possibly_suspicious_texts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># TODO: Delete me.</span>
+        <span class="k">return</span> <span class="p">[]</span> <span class="c"># TODO: Remove this portion of the code -- bad way to detect this.</span>
+
+<div class="viewcode-block" id="Files.get_users_with_queries"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.Files.get_users_with_queries">[docs]</a>    <span class="k">def</span> <span class="nf">get_users_with_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a generator that yields users from the current source.</span>
+<span class="sd">        Returns the queries along with the users.</span>
+
+<span class="sd">        Called by get_users in this module.</span>
+
+<span class="sd">        :param self: The current object</span>
+<span class="sd">        :type self: File</span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">get_users</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">users</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">get_users</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">get_users_from_file</span>
+        <span class="k">if</span> <span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">get_users</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">get_users_from_directory</span>
+        <span class="k">if</span> <span class="n">get_users</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="c"># TODO: Raise error.</span>
+            <span class="k">print</span> <span class="s">&quot;Non-existent path:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span>
+            <span class="nb">exit</span><span class="p">()</span>
+        <span class="n">get_users</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">users</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">users</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">yield</span> <span class="n">user</span>
+</div>
+<div class="viewcode-block" id="Files.get_users_with_sessions"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.Files.get_users_with_sessions">[docs]</a>    <span class="k">def</span> <span class="nf">get_users_with_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a generator that yields users from the current source.</span>
+<span class="sd">        Returns the sessions and queries along with the users.</span>
+
+<span class="sd">        :param self: The current object</span>
+<span class="sd">        :type self: File</span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">texts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_possibly_suspicious_texts</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_users</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_noninteractive_queries_by_search_type</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">suspicious</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_suspicious_queries</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">texts</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extract_sessions_from_user</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">user</span>
+</div>
+<div class="viewcode-block" id="Files.remove_noninteractive_queries_by_search_type"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.Files.remove_noninteractive_queries_by_search_type">[docs]</a>    <span class="k">def</span> <span class="nf">remove_noninteractive_queries_by_search_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">Version</span><span class="o">.</span><span class="n">FORMAT_2014</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Label noninteractive queries as such and place them into separate list.</span>
+<span class="sd">    </span>
+<span class="sd">        TODO: Move this elsewhere.</span>
+
+<span class="sd">        :param self: The current object</span>
+<span class="sd">        :type self: File</span>
+<span class="sd">        :param user: The given user whose queries to separate</span>
+<span class="sd">        :type user: User</span>
+<span class="sd">        :param version: The version of Splunk query data</span>
+<span class="sd">        :type version: str (one of queryutils.Version attributes)</span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="n">Version</span><span class="o">.</span><span class="n">FORMAT_2014</span><span class="p">:</span>
+            <span class="n">handgenerated</span> <span class="o">=</span> <span class="s">&quot;adhoc&quot;</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">noninteractive_queries</span> <span class="o">=</span> <span class="p">[</span><span class="n">query</span> <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">queries</span> <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">search_type</span> <span class="o">!=</span> <span class="n">handgenerated</span><span class="p">]</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">interactive_queries</span> <span class="o">=</span> <span class="p">[</span><span class="n">query</span> <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">queries</span> <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">search_type</span> <span class="o">==</span> <span class="n">handgenerated</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">version</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Version</span><span class="o">.</span><span class="n">FORMAT_2012</span><span class="p">,</span> <span class="n">Version</span><span class="o">.</span><span class="n">FORMAT_2013</span><span class="p">]:</span>
+            <span class="n">handgenerated</span> <span class="o">=</span> <span class="s">&quot;historical&quot;</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">noninteractive_queries</span> <span class="o">=</span> <span class="p">[</span><span class="n">query</span> <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">queries</span> <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">search_type</span> <span class="o">!=</span> <span class="n">handgenerated</span><span class="p">]</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">interactive_queries</span> <span class="o">=</span> <span class="p">[</span><span class="n">query</span> <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">queries</span> <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">search_type</span> <span class="o">==</span> <span class="n">handgenerated</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&quot;Unknown data version -- please provide a known version.&quot;</span> <span class="c"># TODO: Raise error.</span>
+        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">noninteractive_queries</span><span class="p">:</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">is_interactive</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">interactive_queries</span><span class="p">:</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">is_interactive</span> <span class="o">=</span> <span class="bp">True</span>
+</div>
+    <span class="k">def</span> <span class="nf">remove_suspicious_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">texts</span><span class="p">):</span>
+        <span class="c"># TODO: Delete me.</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+
+</div>
+<div class="viewcode-block" id="JSONFiles"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.JSONFiles">[docs]</a><span class="k">class</span> <span class="nc">JSONFiles</span><span class="p">(</span><span class="n">Files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents a source storing Splunk queries in JSON format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a JSONFiles object.</span>
+
+<span class="sd">        :param self: The object being created</span>
+<span class="sd">        :type self: File</span>
+<span class="sd">        :param path: The path to the given file object</span>
+<span class="sd">        :type path: str</span>
+<span class="sd">        :param version: The format the Splunk queries are in</span>
+<span class="sd">        :type version: str (one of the attributes of queryutils.Version)</span>
+<span class="sd">        :rtype: JSONFiles </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">jsonparser</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">JSONFiles</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">jsonparser</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="CSVFiles"><a class="viewcode-back" href="../../queryutils.files.html#queryutils.files.CSVFiles">[docs]</a><span class="k">class</span> <span class="nc">CSVFiles</span><span class="p">(</span><span class="n">Files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents a source storing Splunk queries in CSV format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a CSVFiles object.</span>
+
+<span class="sd">        :param self: The object being created</span>
+<span class="sd">        :type self: File</span>
+<span class="sd">        :param path: The path to the given file object</span>
+<span class="sd">        :type path: str</span>
+<span class="sd">        :param version: The format the Splunk queries are in</span>
+<span class="sd">        :type version: str (one of the attributes of queryutils.Version)</span>
+<span class="sd">        :rtype: CSVFiles </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">csvparser</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CSVFiles</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">csvparser</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">API documentation</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

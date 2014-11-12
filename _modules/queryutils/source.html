@@ -1,0 +1,339 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.source &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for queryutils.source</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span> <span class="k">as</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">queryutils.query</span> <span class="kn">import</span> <span class="n">QueryGroup</span>
+<span class="kn">from</span> <span class="nn">queryutils.session</span> <span class="kn">import</span> <span class="n">Session</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s">&quot;queryutils&quot;</span><span class="p">)</span>
+
+<span class="n">NEW_SESSION_THRESH_SECS</span> <span class="o">=</span> <span class="mf">30.</span> <span class="o">*</span> <span class="mf">60.</span>
+
+<div class="viewcode-block" id="DataSource"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource">[docs]</a><span class="k">class</span> <span class="nc">DataSource</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents a source of Splunk queries, users, and other data.</span>
+
+<span class="sd">    This object should not be initialized directly, rather, one of</span>
+<span class="sd">    its subclasses should be used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="DataSource.__init__"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Initialized data source.&quot;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="DataSource.connect"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.connect">[docs]</a>    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a database connection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="DataSource.close"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Closes a database connection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="DataSource.commit"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.commit">[docs]</a>    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Commits a database transaction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="DataSource.get_users"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.get_users">[docs]</a>    <span class="k">def</span> <span class="nf">get_users</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a generator over a set of User objects.</span>
+
+<span class="sd">        The User objects returned are not guaranteed to be returned with their</span>
+<span class="sd">        corresponding queries and sessions.</span>
+<span class="sd">        If you need users with their corresponding sessions or queries, use a </span>
+<span class="sd">        different method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+        </div>
+<div class="viewcode-block" id="DataSource.get_queries"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.get_queries">[docs]</a>    <span class="k">def</span> <span class="nf">get_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a generator over a set of Query objects without users or sessions.</span>
+
+<span class="sd">        Returns only parsed queries if `parsed` is True (defaults to False).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="DataSource.get_interactive_queries"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.get_interactive_queries">[docs]</a>    <span class="k">def</span> <span class="nf">get_interactive_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a generator over the set of interactive Query objects without users or sessions. </span>
+
+<span class="sd">        Returns only parsed queries if `parsed` is True (defaults to False).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="DataSource.get_users_with_queries"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.get_users_with_queries">[docs]</a>    <span class="k">def</span> <span class="nf">get_users_with_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span> <span class="c"># : Figure out semantics of `parsed`.</span>
+        <span class="sd">&quot;&quot;&quot;Returns a generator over a set of Users with queries.</span>
+
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="DataSource.get_users_with_sessions"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.get_users_with_sessions">[docs]</a>    <span class="k">def</span> <span class="nf">get_users_with_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a generator over a set of Users with queries and sessions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+    </div>
+<div class="viewcode-block" id="DataSource.extract_sessions_from_user"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.extract_sessions_from_user">[docs]</a>    <span class="k">def</span> <span class="nf">extract_sessions_from_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">remove_suspicious</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extract sessions from the given users&#39; queries.</span>
+
+<span class="sd">        :param self: The current source object</span>
+<span class="sd">        :type self: queryutils.DataSource </span>
+<span class="sd">        :param user: The user whose queries to sessionize</span>
+<span class="sd">        :type user: queryutils.User</span>
+<span class="sd">        :param remove_suspicious: Whether or not to remove queries labeled suspicious</span>
+<span class="sd">        :type remove_suspicious: bool</span>
+<span class="sd">        :rtype: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">interactive_queries</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="k">return</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">interactive_queries</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+        <span class="n">to_sessionize</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">interactive_queries</span> 
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">remove_suspicious</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">q</span><span class="o">.</span><span class="n">is_suspicious</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">to_sessionize</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="k">return</span>
+        <span class="n">prev_time</span> <span class="o">=</span> <span class="n">curr_time</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span>
+        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">to_sessionize</span><span class="p">:</span>
+            <span class="n">curr_time</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">time</span>
+            <span class="k">if</span> <span class="n">prev_time</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">:</span>
+                <span class="n">prev_time</span> <span class="o">=</span> <span class="n">curr_time</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="n">curr_time</span> <span class="o">-</span> <span class="n">prev_time</span>
+            <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">delta</span> <span class="o">&gt;</span> <span class="n">NEW_SESSION_THRESH_SECS</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_update_session_duration</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">])</span>
+                <span class="n">session_id</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span>
+                <span class="n">user</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span>
+            <span class="n">prev_time</span> <span class="o">=</span> <span class="n">curr_time</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span><span class="o">.</span><span class="n">queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_session_duration</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">])</span>
+</div>
+    <span class="k">def</span> <span class="nf">_update_session_duration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
+        <span class="n">first_query</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">queries</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">last_query</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">queries</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">duration</span> <span class="o">=</span> <span class="n">last_query</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="n">first_query</span><span class="o">.</span><span class="n">time</span>
+
+    <span class="k">def</span> <span class="nf">get_query_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">multiple</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="c"># TODO: Delete me?</span>
+        <span class="c">#users = { user.id: user for users in self.get_users() }</span>
+        <span class="nb">iter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_interactive_queries</span><span class="p">():</span>
+            <span class="c">#query.user = users[query.user_id]</span>
+            <span class="n">query_group</span> <span class="o">=</span> <span class="n">QueryGroup</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="n">query_group</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">id</span>
+            <span class="n">query_group</span><span class="o">.</span><span class="n">copies</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_interactive_queries_with_text</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">query_group</span><span class="o">.</span><span class="n">copies</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">multiple</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Query has no copies.&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">yield</span> <span class="n">query_group</span>
+            <span class="k">if</span> <span class="nb">iter</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Returned </span><span class="si">%d</span><span class="s"> query groups.&quot;</span> <span class="o">%</span> <span class="nb">iter</span><span class="p">)</span>
+            <span class="nb">iter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c">#if iter &gt; 2000: break</span>
+            <span class="c">#for copy in query.copies:</span>
+            <span class="c">#    copy.user = users[copy.user_id]</span>
+            
+        <span class="c">#groups = defaultdict(list)</span>
+        <span class="c">#for user in self.get_users_with_queries():</span>
+        <span class="c">#    for query in user.queries:</span>
+        <span class="c">#        groups[query.text].append(query)</span>
+        <span class="c">#for (text, group) in groups.iteritems():</span>
+        <span class="c">#    for query in group:</span>
+        <span class="c">#        qg = QueryGroup(query)</span>
+        <span class="c">#        qg.copies = group</span>
+        <span class="c">#        yield qg</span>
+
+<div class="viewcode-block" id="DataSource.extract_command_stage"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.extract_command_stage">[docs]</a>    <span class="k">def</span> <span class="nf">extract_command_stage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsetree</span><span class="p">,</span> <span class="n">commands</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extract the subtrees of the given parsetree that have one of the given commands.</span>
+<span class="sd">        </span>
+<span class="sd">        :param self: The current source object</span>
+<span class="sd">        :type self: queryutils.DataSource </span>
+<span class="sd">        :param parsetree: The given parsetree from which to extract &quot;STAGE&quot; subtrees</span>
+<span class="sd">        :type parsetree: splparser.ParseTreeNode</span>
+<span class="sd">        :param commands: The list of commands to match against</span>
+<span class="sd">        :type commands: list</span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">parsetree</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">parsetree</span><span class="o">.</span><span class="n">itertree</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s">&quot;STAGE&quot;</span><span class="p">:</span>
+                    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s">&quot;COMMAND&quot;</span><span class="p">)</span> <span class="ow">or</span> \
+                        <span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s">&quot;COMMAND&quot;</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">raw</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">):</span>
+                        <span class="k">yield</span> <span class="n">node</span><span class="p">,</span> <span class="n">count</span>
+</div>
+<div class="viewcode-block" id="DataSource.get_unique_stages"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.get_unique_stages">[docs]</a>    <span class="k">def</span> <span class="nf">get_unique_stages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">commands</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a generator over unique stages whose command matches one of the given types.</span>
+
+<span class="sd">        :param self: The current source object</span>
+<span class="sd">        :type self: queryutils.DataSource </span>
+<span class="sd">        :param commands: The list of commands to match against</span>
+<span class="sd">        :type commands: list</span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="nb">iter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">parsetree</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parsetrees</span><span class="p">():</span>
+            <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_command_stage</span><span class="p">(</span><span class="n">parsetree</span><span class="p">,</span> <span class="n">commands</span><span class="p">):</span>
+                <span class="n">stage_key</span> <span class="o">=</span> <span class="n">stage</span><span class="o">.</span><span class="n">str_tree</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">stage_key</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">stage_key</span><span class="p">)</span>
+                <span class="n">stage</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="s">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">parsetree</span><span class="o">.</span><span class="n">query_id</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">counter</span><span class="p">)])</span>
+                <span class="n">stage</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">pos</span>
+                <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">yield</span> <span class="n">stage</span>
+            <span class="k">if</span> <span class="nb">iter</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Returned </span><span class="si">%d</span><span class="s"> unique stages.&quot;</span> <span class="o">%</span> <span class="nb">iter</span><span class="p">)</span>
+            <span class="nb">iter</span> <span class="o">+=</span> <span class="mi">1</span>
+</div>
+<div class="viewcode-block" id="DataSource.get_unique_filters"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.get_unique_filters">[docs]</a>    <span class="k">def</span> <span class="nf">get_unique_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return all unique stages that are &quot;Filter&quot; types.</span>
+<span class="sd">        </span>
+<span class="sd">        :param self: The current source object</span>
+<span class="sd">        :type self: queryutils.DataSource </span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># TODO: Reimplement using splunktypes lookup instead of list!</span>
+        <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;dedup&quot;</span><span class="p">,</span> <span class="s">&quot;head&quot;</span><span class="p">,</span> <span class="s">&quot;regex&quot;</span><span class="p">,</span> <span class="s">&quot;search&quot;</span><span class="p">,</span> <span class="s">&quot;tail&quot;</span><span class="p">,</span> <span class="s">&quot;where&quot;</span><span class="p">,</span> <span class="s">&quot;uniq&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="nb">filter</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_unique_stages</span><span class="p">(</span><span class="n">filters</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="nb">filter</span>
+</div>
+<div class="viewcode-block" id="DataSource.get_unique_aggregates"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.get_unique_aggregates">[docs]</a>    <span class="k">def</span> <span class="nf">get_unique_aggregates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return all unique stages that are &quot;Aggregate&quot; types.</span>
+<span class="sd">        </span>
+<span class="sd">        :param self: The current source object</span>
+<span class="sd">        :type self: queryutils.DataSource </span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># TODO: Reimplement using splunktypes lookup instead of list!</span>
+        <span class="n">aggregates</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;addtotals&quot;</span><span class="p">,</span> <span class="s">&quot;addcoltotals&quot;</span><span class="p">,</span> <span class="s">&quot;chart&quot;</span><span class="p">,</span> <span class="s">&quot;eventcount&quot;</span><span class="p">,</span> <span class="s">&quot;geostats&quot;</span><span class="p">,</span> 
+            <span class="s">&quot;mvcombine&quot;</span><span class="p">,</span> <span class="s">&quot;rare&quot;</span><span class="p">,</span> <span class="s">&quot;stats&quot;</span><span class="p">,</span> <span class="s">&quot;timechart&quot;</span><span class="p">,</span> <span class="s">&quot;top&quot;</span><span class="p">,</span> <span class="s">&quot;transaction&quot;</span><span class="p">,</span> <span class="s">&quot;tstats&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">aggregate</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_unique_stages</span><span class="p">(</span><span class="n">aggregates</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">aggregate</span>
+</div>
+<div class="viewcode-block" id="DataSource.get_unique_augments"><a class="viewcode-back" href="../../queryutils.source.html#queryutils.source.DataSource.get_unique_augments">[docs]</a>    <span class="k">def</span> <span class="nf">get_unique_augments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return all unique stages that are &quot;Augment&quot; types.</span>
+
+<span class="sd">        :param self: The current source object</span>
+<span class="sd">        :type self: queryutils.DataSource </span>
+<span class="sd">        :rtype: generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># TODO: Reimplement using splunktypes lookup instead of list!</span>
+        <span class="n">augments</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;addinfo&quot;</span><span class="p">,</span> <span class="s">&quot;addtotals&quot;</span><span class="p">,</span> <span class="s">&quot;appendcols&quot;</span><span class="p">,</span> <span class="s">&quot;bin&quot;</span><span class="p">,</span> <span class="s">&quot;bucket&quot;</span><span class="p">,</span> 
+            <span class="s">&quot;eval&quot;</span><span class="p">,</span> <span class="s">&quot;eventstats&quot;</span><span class="p">,</span> <span class="s">&quot;extract&quot;</span><span class="p">,</span> <span class="s">&quot;gauge&quot;</span><span class="p">,</span> <span class="s">&quot;iplocation&quot;</span><span class="p">,</span> <span class="s">&quot;kv&quot;</span><span class="p">,</span> <span class="s">&quot;outputtext&quot;</span><span class="p">,</span>
+            <span class="s">&quot;rangemap&quot;</span><span class="p">,</span> <span class="s">&quot;relevancy&quot;</span><span class="p">,</span> <span class="s">&quot;rex&quot;</span><span class="p">,</span> <span class="s">&quot;spath&quot;</span><span class="p">,</span> <span class="s">&quot;strcat&quot;</span><span class="p">,</span> <span class="s">&quot;tags&quot;</span><span class="p">,</span> <span class="s">&quot;xmlkv&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">augment</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_unique_stages</span><span class="p">(</span><span class="n">augments</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">augment</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">API documentation</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

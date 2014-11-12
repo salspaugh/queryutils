@@ -1,0 +1,567 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.databases &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for queryutils.databases</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
+
+<span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+
+<span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span> <span class="k">as</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">queryutils.source</span> <span class="kn">import</span> <span class="n">DataSource</span>
+<span class="kn">from</span> <span class="nn">queryutils.user</span> <span class="kn">import</span> <span class="n">User</span>
+<span class="kn">from</span> <span class="nn">queryutils.session</span> <span class="kn">import</span> <span class="n">Session</span>
+<span class="kn">from</span> <span class="nn">queryutils.query</span> <span class="kn">import</span> <span class="n">Query</span><span class="p">,</span> <span class="n">QueryType</span>
+<span class="kn">from</span> <span class="nn">queryutils.parse</span> <span class="kn">import</span> <span class="n">parse_query</span>
+<span class="kn">from</span> <span class="nn">splparser.parsetree</span> <span class="kn">import</span> <span class="n">ParseTreeNode</span>
+
+<span class="kn">import</span> <span class="nn">queryutils.sql</span>
+
+<span class="kn">import</span> <span class="nn">psycopg2</span>
+<span class="kn">from</span> <span class="nn">psycopg2.extras</span> <span class="kn">import</span> <span class="n">RealDictCursor</span>
+<span class="kn">import</span> <span class="nn">sqlite3</span>
+
+<span class="n">SUSPICIOUS_USER_NAMES</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;splunk-system-user&quot;</span><span class="p">]</span>
+<span class="n">SUSPICIOUS_QUERY_THRESHOLDS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&quot;interarrival_consistency_max&quot;</span><span class="p">:</span> <span class="o">.</span><span class="mi">9</span><span class="p">,</span>
+    <span class="s">&quot;interarrival_clockness_max&quot;</span><span class="p">:</span> <span class="o">.</span><span class="mi">9</span><span class="p">,</span>
+    <span class="s">&quot;distinct_users_max&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s">&quot;queryutils&quot;</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Imported in </span><span class="si">%f</span><span class="s"> seconds.&quot;</span> <span class="o">%</span> <span class="n">elapsed</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">Database</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Database.__init__"><a class="viewcode-back" href="../../queryutils.databases.html#queryutils.databases.Database.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wildcard</span><span class="p">,</span> <span class="n">dbtype</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span> <span class="o">=</span> <span class="n">wildcard</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbtype</span> <span class="o">=</span> <span class="n">dbtype</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Database</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+</div>
+    <span class="k">def</span> <span class="nf">initialize_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_users_table</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_sessions_table</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_queries_table</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_parsetrees_table</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">initialize_users_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_queries</span><span class="p">(</span><span class="n">queryutils</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">INIT_USERS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dbtype</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">initialize_sessions_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_queries</span><span class="p">(</span><span class="n">queryutils</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">INIT_SESSIONS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dbtype</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">initialize_queries_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_queries</span><span class="p">(</span><span class="n">queryutils</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">INIT_QUERIES</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dbtype</span><span class="p">])</span>
+    
+    <span class="k">def</span> <span class="nf">initialize_parsetrees_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_queries</span><span class="p">(</span><span class="n">queryutils</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">INIT_PARSETREES</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dbtype</span><span class="p">])</span>
+   
+    <span class="k">def</span> <span class="nf">load_users_and_queries_from_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">src</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_users_and_queries</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">load_users_and_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">):</span>
+        <span class="n">src</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">uid</span> <span class="o">=</span> <span class="n">qid</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">src</span><span class="o">.</span><span class="n">get_users_with_queries</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Loading user.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">insert_user</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">uid</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">queries</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Loading query.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">insert_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">qid</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+                <span class="n">qid</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">uid</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">src</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">execute_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queries</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Executing </span><span class="se">\n</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">query</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">insert_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">uid</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;INSERT INTO users </span><span class="se">\</span>
+<span class="s">                (id, name, case_id, user_type) </span><span class="se">\</span>
+<span class="s">                VALUES (&quot;</span> <span class="o">+</span> <span class="s">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">]</span><span class="o">*</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span><span class="p">,</span> 
+                <span class="p">(</span><span class="n">uid</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">case_id</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">user_type</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">insert_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">qid</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;INSERT INTO queries </span><span class="se">\</span>
+<span class="s">                (id, text, time, is_interactive, is_suspicious, </span><span class="se">\</span>
+<span class="s">                execution_time, earliest_event, latest_event, range, is_realtime, </span><span class="se">\</span>
+<span class="s">                search_type, splunk_search_id, saved_search_name, </span><span class="se">\</span>
+<span class="s">                user_id, session_id) </span><span class="se">\</span>
+<span class="s">                VALUES (&quot;</span><span class="o">+</span> <span class="s">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">]</span><span class="o">*</span><span class="mi">15</span><span class="p">)</span> <span class="o">+</span><span class="s">&quot;)&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">qid</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">is_interactive</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">is_suspicious</span><span class="p">,</span>
+                <span class="n">query</span><span class="o">.</span><span class="n">execution_time</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">earliest_event</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">latest_event</span><span class="p">,</span>
+                <span class="n">query</span><span class="o">.</span><span class="n">range</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">is_realtime</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span>
+                <span class="n">query</span><span class="o">.</span><span class="n">splunk_search_id</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">saved_search_name</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="n">sid</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_users</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">ucursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT id, name, case_id, user_type FROM users&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">ucursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span> <span class="n">k</span><span class="p">:</span><span class="n">row</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">}</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Fetched user: &quot;</span> <span class="o">+</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">])</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">])</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">user</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interactive</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="c">#sql = &quot;SELECT id, text, time, is_interactive, is_suspicious, search_type, \</span>
+        <span class="c">#          earliest_event, latest_event, range, is_realtime, \</span>
+        <span class="c">#          splunk_search_id, execution_time, saved_search_name, \</span>
+        <span class="c">#          user_id, session_id, parsetree \</span>
+        <span class="c">#          FROM queries%s %s %s %s&quot; % (from_sql, where_sql, pjoin_sql, interactive_sql)</span>
+        <span class="c">#from_sql = &quot;&quot;</span>
+        <span class="c">#where_sql = &quot;&quot;</span>
+        <span class="c">#if parsed or interactive:</span>
+        <span class="c">#    where_sql = &quot;WHERE&quot;</span>
+        <span class="c">#    parsetrees_sql = &quot;, parsetrees&quot;</span>
+        <span class="k">if</span> <span class="n">parsed</span><span class="p">:</span>
+            <span class="n">qcursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT id, text, time, </span><span class="se">\</span>
+<span class="s">                            is_interactive, is_suspicious, search_type, </span><span class="se">\</span>
+<span class="s">                            earliest_event, latest_event, range, is_realtime, </span><span class="se">\</span>
+<span class="s">                            splunk_search_id, execution_time, saved_search_name, </span><span class="se">\</span>
+<span class="s">                            user_id, session_id, parsetree </span><span class="se">\</span>
+<span class="s">                            FROM queries, parsetrees </span><span class="se">\</span>
+<span class="s">                            WHERE id = parsetrees.query_id&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">qcursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT id, text, time, </span><span class="se">\</span>
+<span class="s">                            is_interactive, is_suspicious, search_type, </span><span class="se">\</span>
+<span class="s">                            earliest_event, latest_event, range, is_realtime, </span><span class="se">\</span>
+<span class="s">                            splunk_search_id, execution_time, saved_search_name, </span><span class="se">\</span>
+<span class="s">                            user_id, session_id </span><span class="se">\</span>
+<span class="s">                            FROM queries&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">qcursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span> <span class="n">k</span><span class="p">:</span><span class="n">row</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">}</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;text&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;time&quot;</span><span class="p">])</span>
+            <span class="n">q</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">parsed</span><span class="p">:</span>
+                <span class="n">q</span><span class="o">.</span><span class="n">parsetree</span> <span class="o">=</span> <span class="n">ParseTreeNode</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;parsetree&quot;</span><span class="p">])</span>
+            <span class="k">yield</span> <span class="n">q</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">fetch_queries_by_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query_type</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">query_type</span> <span class="o">==</span> <span class="n">QueryType</span><span class="o">.</span><span class="n">INTERACTIVE</span><span class="p">:</span>
+            <span class="n">ucursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT id FROM users WHERE user_type is null&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">query_type</span> <span class="o">==</span> <span class="n">QueryType</span><span class="o">.</span><span class="n">SCHEDULED</span><span class="p">:</span>
+            <span class="n">ucursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT id FROM users&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Invalid query type.&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">ucursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+            <span class="n">user_id</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;id&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">query_type</span> <span class="o">==</span> <span class="n">QueryType</span><span class="o">.</span><span class="n">INTERACTIVE</span><span class="p">:</span>
+                <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;SELECT text FROM queries </span><span class="se">\</span>
+<span class="s">                        WHERE is_interactive=true </span><span class="se">\</span>
+<span class="s">                            AND is_suspicious=false </span><span class="se">\</span>
+<span class="s">                            AND user_id=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span>
+            <span class="k">elif</span> <span class="n">query_type</span> <span class="o">==</span> <span class="n">QueryType</span><span class="o">.</span><span class="n">SCHEDULED</span><span class="p">:</span>
+                <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;SELECT DISTINCT text FROM queries </span><span class="se">\</span>
+<span class="s">                        WHERE is_interactive=false AND user_id=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Invalid query type.&quot;</span><span class="p">)</span>
+            <span class="n">qcursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="p">))</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">qcursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+                <span class="n">query</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;text&quot;</span><span class="p">]</span>
+                <span class="k">yield</span> <span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">fetch_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query_type</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">query_type</span> <span class="o">==</span> <span class="n">QueryType</span><span class="o">.</span><span class="n">INTERACTIVE</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;SELECT text FROM queries, users </span><span class="se">\</span>
+<span class="s">                    WHERE queries.user_id=users.id AND </span><span class="se">\</span>
+<span class="s">                        is_interactive=true AND </span><span class="se">\</span>
+<span class="s">                        is_suspicious=false AND </span><span class="se">\</span>
+<span class="s">                        user_type is null&quot;</span>
+        <span class="k">elif</span> <span class="n">query_type</span> <span class="o">==</span> <span class="n">QueryType</span><span class="o">.</span><span class="n">SCHEDULED</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;SELECT DISTINCT text FROM queries WHERE is_interactive=false&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s">&quot;Invalid query type.&quot;</span><span class="p">)</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+            <span class="k">yield</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;text&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_interactive_queries_with_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">qcursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT id, text, time, is_interactive, is_suspicious, search_type, </span><span class="se">\</span>
+<span class="s">                        earliest_event, latest_event, range, is_realtime, </span><span class="se">\</span>
+<span class="s">                        splunk_search_id, execution_time, saved_search_name, </span><span class="se">\</span>
+<span class="s">                        user_id, session_id </span><span class="se">\</span>
+<span class="s">                        FROM queries </span><span class="se">\</span>
+<span class="s">                        WHERE is_interactive=</span><span class="si">%s</span><span class="s"> AND text=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">),</span> <span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
+        <span class="nb">iter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">qcursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span> <span class="n">k</span><span class="p">:</span><span class="n">row</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">}</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;text&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;time&quot;</span><span class="p">])</span>
+            <span class="n">q</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">q</span>
+            <span class="k">if</span> <span class="nb">iter</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Returned </span><span class="si">%d</span><span class="s"> queries with text &#39;</span><span class="si">%s</span><span class="s">.&#39;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">iter</span><span class="p">,</span><span class="n">text</span><span class="p">))</span>
+            <span class="nb">iter</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_interactive_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">parsed</span><span class="p">:</span>
+            <span class="n">sqlquery</span> <span class="o">=</span> <span class="s">&quot;SELECT queries.id, text, time, is_interactive, is_suspicious, search_type, </span><span class="se">\</span>
+<span class="s">                                earliest_event, latest_event, range, is_realtime, </span><span class="se">\</span>
+<span class="s">                                splunk_search_id, execution_time, saved_search_name, </span><span class="se">\</span>
+<span class="s">                                user_id, session_id, parsetree </span><span class="se">\</span>
+<span class="s">                        FROM queries, parsetrees </span><span class="se">\</span>
+<span class="s">                        WHERE id = parsetrees.query_id AND is_interactive=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sqlquery</span> <span class="o">=</span> <span class="s">&quot;SELECT queries.id, text, time, is_interactive, is_suspicious, search_type, </span><span class="se">\</span>
+<span class="s">                                earliest_event, latest_event, range, is_realtime, </span><span class="se">\</span>
+<span class="s">                                splunk_search_id, execution_time, saved_search_name, </span><span class="se">\</span>
+<span class="s">                                user_id, session_id </span><span class="se">\</span>
+<span class="s">                        FROM queries </span><span class="se">\</span>
+<span class="s">                        WHERE is_interactive=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sqlquery</span><span class="p">,</span> <span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="p">))</span>
+        <span class="nb">iter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span> <span class="n">k</span><span class="p">:</span><span class="n">row</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">}</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;text&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;time&quot;</span><span class="p">])</span>
+            <span class="n">q</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">parsed</span><span class="p">:</span>
+                <span class="n">q</span><span class="o">.</span><span class="n">parsetree</span> <span class="o">=</span> <span class="n">ParseTreeNode</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;parsetree&quot;</span><span class="p">])</span>
+            <span class="k">yield</span> <span class="n">q</span>
+            <span class="k">if</span> <span class="nb">iter</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Returned </span><span class="si">%d</span><span class="s"> interactive queries.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">iter</span><span class="p">))</span>
+            <span class="nb">iter</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_parsetrees</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT parsetree, query_id FROM parsetrees&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">ParseTreeNode</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;parsetree&quot;</span><span class="p">])</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">query_id</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;query_id&quot;</span><span class="p">]</span>
+                <span class="k">yield</span> <span class="n">p</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">print</span> <span class="n">e</span>
+                <span class="k">print</span> <span class="n">parsetree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_session_from_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="n">bad</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="s">&quot;sessions&quot;</span>
+        <span class="k">if</span> <span class="n">bad</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="s">&quot;bad_sessions&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;SELECT id, user_id, session_type </span><span class="se">\</span>
+<span class="s">                                FROM </span><span class="si">%s</span><span class="s"> </span><span class="se">\</span>
+<span class="s">                                WHERE user_id=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">)</span>
+        <span class="n">scursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">uid</span><span class="p">,))</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">scursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span> <span class="n">k</span><span class="p">:</span><span class="n">row</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">}</span>
+            <span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;id&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;user_id&quot;</span><span class="p">])</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">session</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_query_in_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">bad</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">session_col</span> <span class="o">=</span> <span class="s">&quot;session_id&quot;</span>
+        <span class="k">if</span> <span class="n">bad</span><span class="p">:</span>
+            <span class="n">session_col</span> <span class="o">=</span> <span class="s">&quot;bad_session_id&quot;</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="s">&quot;queries&quot;</span>
+        <span class="n">where</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+        <span class="n">tree_col</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">parsed</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="s">&quot;queries, parsetrees&quot;</span>
+            <span class="n">where</span> <span class="o">=</span> <span class="s">&quot;id = parsetrees.query_id AND&quot;</span>
+            <span class="n">tree_col</span> <span class="o">=</span> <span class="s">&quot;, parsetree&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;SELECT id, text, time, is_interactive, is_suspicious, search_type, </span><span class="se">\</span>
+<span class="s">                    earliest_event, latest_event, range, is_realtime, </span><span class="se">\</span>
+<span class="s">                    splunk_search_id, execution_time, saved_search_name, </span><span class="se">\</span>
+<span class="s">                    user_id, </span><span class="si">%s%s</span><span class="s"> </span><span class="se">\</span>
+<span class="s">                    FROM </span><span class="si">%s</span><span class="s"> </span><span class="se">\</span>
+<span class="s">                    WHERE </span><span class="si">%s</span><span class="s"> session_id=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">session_col</span><span class="p">,</span> <span class="n">tree_col</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">where</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">)</span>
+        <span class="n">qcursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">sid</span><span class="p">,))</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">qcursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span> <span class="n">k</span><span class="p">:</span><span class="n">row</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">}</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;text&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;time&quot;</span><span class="p">])</span>
+            <span class="n">q</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">parsed</span><span class="p">:</span>
+                <span class="n">q</span><span class="o">.</span><span class="n">parsetree</span> <span class="o">=</span> <span class="n">ParseTreeNode</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;parsetree&quot;</span><span class="p">])</span>
+            <span class="k">yield</span> <span class="n">q</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_query_from_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">parsed</span><span class="p">:</span> <span class="c"># TODO: Replace with &quot;SELECT *...&quot;?</span>
+            <span class="n">qcursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT id, text, time, is_interactive, is_suspicious, search_type, </span><span class="se">\</span>
+<span class="s">                            earliest_event, latest_event, range, is_realtime, </span><span class="se">\</span>
+<span class="s">                            splunk_search_id, execution_time, saved_search_name, </span><span class="se">\</span>
+<span class="s">                            user_id, session_id, parsetree </span><span class="se">\</span>
+<span class="s">                            FROM queries, parsetrees </span><span class="se">\</span>
+<span class="s">                            WHERE id = parsetrees.query_id AND user_id = &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">,</span> <span class="p">(</span><span class="n">uid</span><span class="p">,))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">qcursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;SELECT id, text, time, is_interactive, is_suspicious, search_type, </span><span class="se">\</span>
+<span class="s">                            earliest_event, latest_event, range, is_realtime, </span><span class="se">\</span>
+<span class="s">                            splunk_search_id, execution_time, saved_search_name, </span><span class="se">\</span>
+<span class="s">                            user_id, session_id </span><span class="se">\</span>
+<span class="s">                            FROM queries </span><span class="se">\</span>
+<span class="s">                            WHERE user_id = &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">,</span> <span class="p">(</span><span class="n">uid</span><span class="p">,))</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">qcursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span> <span class="n">k</span><span class="p">:</span><span class="n">row</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">}</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;text&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s">&quot;time&quot;</span><span class="p">])</span>
+            <span class="n">q</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">parsed</span><span class="p">:</span>
+                <span class="n">q</span><span class="o">.</span><span class="n">parsetree</span> <span class="o">=</span> <span class="n">ParseTreeNode</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s">&quot;parsetree&quot;</span><span class="p">])</span>
+            <span class="k">yield</span> <span class="n">q</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">bad</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_users</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">session</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_session_from_user</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">bad</span><span class="o">=</span><span class="n">bad</span><span class="p">):</span>
+                <span class="n">sessions</span><span class="p">[</span><span class="n">session</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span>
+                <span class="n">user</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">session</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span>
+                <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_query_in_session</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="n">parsed</span><span class="p">,</span> <span class="n">bad</span><span class="o">=</span><span class="n">bad</span><span class="p">):</span>
+                    <span class="n">query</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">session</span>
+                    <span class="n">query</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
+                    <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                        <span class="n">session</span><span class="o">.</span><span class="n">queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+                    <span class="n">user</span><span class="o">.</span><span class="n">queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">session</span> <span class="ow">in</span> <span class="n">sessions</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">queries</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">queries</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">queries</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">session</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_users_with_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_users</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_query_from_user</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="n">parsed</span><span class="p">):</span>
+                <span class="n">query</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
+                <span class="n">user</span><span class="o">.</span><span class="n">queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">interactive_queries</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">queries</span> <span class="k">if</span> <span class="n">q</span><span class="o">.</span><span class="n">is_interactive</span><span class="p">]</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">noninteractive_queries</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">queries</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">q</span><span class="o">.</span><span class="n">is_interactive</span><span class="p">]</span>
+            <span class="k">yield</span> <span class="n">user</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">mark_suspicious_users</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;UPDATE users SET user_type=</span><span class="si">%s</span><span class="s"> WHERE id=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_users</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">SUSPICIOUS_USER_NAMES</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="s">&quot;suspicious&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">mark_suspicious_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thresholds</span><span class="o">=</span><span class="n">SUSPICIOUS_QUERY_THRESHOLDS</span><span class="p">):</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;UPDATE queries SET is_suspicious=true WHERE id=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="c">#for query_group in self.get_query_groups():</span>
+        <span class="c">#    high_consistency = query_group.interarrival_consistency() &gt; thresholds[&quot;interarrival_consistency_max&quot;]</span>
+        <span class="c">#    high_clockness = query_group.interarrival_clockness() &gt; thresholds[&quot;interarrival_clockness_max&quot;]</span>
+        <span class="c">#    high_user_count = query_group.number_of_distinct_users() &gt; thresholds[&quot;distinct_users_max&quot;]</span>
+        <span class="c">#    if high_consistency or high_clockness or high_user_count:</span>
+        <span class="c">#        self.execute(sql, (query_group.query.id,))</span>
+        <span class="c">#        self.commit()</span>
+        <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_queries</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;typeahead&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Marking suspicious: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">id</span><span class="p">,))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Not marking: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">query</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">sessionize_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">remove_suspicious</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="s">&quot;sessions&quot;</span>
+        <span class="n">column</span> <span class="o">=</span> <span class="s">&quot;session_id&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">remove_suspicious</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="s">&quot;bad_sessions&quot;</span>
+            <span class="n">column</span> <span class="o">=</span> <span class="s">&quot;bad_session_id&quot;</span>
+        <span class="n">insert_sql</span> <span class="o">=</span> <span class="s">&quot;INSERT INTO </span><span class="si">%s</span><span class="s"> (id, user_id) VALUES (</span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">)</span>
+        <span class="n">update_sql</span> <span class="o">=</span> <span class="s">&quot;UPDATE queries SET </span><span class="si">%s</span><span class="s">=</span><span class="si">%s</span><span class="s"> WHERE id=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wildcard</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">sid</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_users_with_queries</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extract_sessions_from_user</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">remove_suspicious</span><span class="o">=</span><span class="n">remove_suspicious</span><span class="p">)</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">sessions</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">insert_sql</span><span class="p">,</span> <span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Inserted session </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">sid</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">queries</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">update_sql</span><span class="p">,</span> <span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+                <span class="n">sid</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="k">class</span> <span class="nc">PostgresDB</span><span class="p">(</span><span class="n">Database</span><span class="p">):</span>
+
+<div class="viewcode-block" id="PostgresDB.__init__"><a class="viewcode-back" href="../../queryutils.databases.html#queryutils.databases.PostgresDB.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="n">database</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="n">password</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PostgresDB</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;postgres&quot;</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">database</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">password</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">(</span><span class="n">cursor_factory</span><span class="o">=</span><span class="n">RealDictCursor</span><span class="p">)</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cursor</span>
+
+
+<span class="k">class</span> <span class="nc">SQLite3DB</span><span class="p">(</span><span class="n">Database</span><span class="p">):</span>
+
+<div class="viewcode-block" id="SQLite3DB.__init__"><a class="viewcode-back" href="../../queryutils.databases.html#queryutils.databases.SQLite3DB.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SQLite3DB</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="s">&quot;?&quot;</span><span class="p">,</span> <span class="s">&quot;sqlite3&quot;</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">row_factory</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Row</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span>
+
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cursor</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">API documentation</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

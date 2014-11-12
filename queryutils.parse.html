@@ -1,0 +1,253 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.parse &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="index.html" />
+    <link rel="up" title="API documentation" href="documentation.html" />
+    <link rel="prev" title="queryutils.splunktypes" href="queryutils.splunktypes.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="queryutils.splunktypes.html" title="queryutils.splunktypes"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="documentation.html" accesskey="U">API documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-queryutils.parse">
+<span id="queryutils-parse"></span><h1>queryutils.parse<a class="headerlink" href="#module-queryutils.parse" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="queryutils.parse.extract_schema">
+<tt class="descclassname">queryutils.parse.</tt><tt class="descname">extract_schema</tt><big>(</big><em>query</em><big>)</big><a class="reference internal" href="_modules/queryutils/parse.html#extract_schema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.parse.extract_schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the schema for the query.</p>
+<p>This functionality is experimental.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>query</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The query string for which to extract the schema</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">splparser.schema.Schema</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.parse.extract_template">
+<tt class="descclassname">queryutils.parse.</tt><tt class="descname">extract_template</tt><big>(</big><em>query</em><big>)</big><a class="reference internal" href="_modules/queryutils/parse.html#extract_template"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.parse.extract_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the template for the query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>query</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The query string for which to extract the template</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">splparser.parsetree.ParseTreeNode</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.parse.lookup_commands">
+<tt class="descclassname">queryutils.parse.</tt><tt class="descname">lookup_commands</tt><big>(</big><em>querystring</em><big>)</big><a class="reference internal" href="_modules/queryutils/parse.html#lookup_commands"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.parse.lookup_commands" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the list of commands from the query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>querystring</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The query to extract commands from</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.parse.parse_queries">
+<tt class="descclassname">queryutils.parse.</tt><tt class="descname">parse_queries</tt><big>(</big><em>queries</em><big>)</big><a class="reference internal" href="_modules/queryutils/parse.html#parse_queries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.parse.parse_queries" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO: Delete me.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.parse.parse_query">
+<tt class="descclassname">queryutils.parse.</tt><tt class="descname">parse_query</tt><big>(</big><em>query</em><big>)</big><a class="reference internal" href="_modules/queryutils/parse.html#parse_query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.parse.parse_query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the given query if possible.</p>
+<p>This function is a small wrapper for splparser&#8217;s parse function that 
+handles unicode issues and logs errors and returns None in the case of
+an error rather than raising an exception.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>query</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The query to parse</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">splparser.parsetree.ParseTreeNode</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.parse.split_query_into_stages">
+<tt class="descclassname">queryutils.parse.</tt><tt class="descname">split_query_into_stages</tt><big>(</big><em>query</em><big>)</big><a class="reference internal" href="_modules/queryutils/parse.html#split_query_into_stages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.parse.split_query_into_stages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split the query into stages.</p>
+<p>This takes a query string and returns a list of strings that represent the 
+query stages. This is trickier than just calling split(&#8216;|&#8217;) because the
+pipe character is a valid argument to commands if quoted.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>query</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The query to split</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.parse.tag_parseable">
+<tt class="descclassname">queryutils.parse.</tt><tt class="descname">tag_parseable</tt><big>(</big><em>query</em><big>)</big><a class="reference internal" href="_modules/queryutils/parse.html#tag_parseable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.parse.tag_parseable" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO: Delete me.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.parse.tokenize_query">
+<tt class="descclassname">queryutils.parse.</tt><tt class="descname">tokenize_query</tt><big>(</big><em>query</em><big>)</big><a class="reference internal" href="_modules/queryutils/parse.html#tokenize_query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.parse.tokenize_query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tokenize the given query if possible.</p>
+<p>This function is a wrapper for splparser&#8217;s tokenizer that handles
+unicode issues and logs errors and returns None in the case of an
+error rather than raising an exception.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>query</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The query to tokenize</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing code</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="documentation.html">API documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="queryutils.query.html">queryutils.query</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.user.html">queryutils.user</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.source.html">queryutils.source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.databases.html">queryutils.databases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.files.html">queryutils.files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.csvparser.html">queryutils.csvparser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.jsonparser.html">queryutils.jsonparser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.splunktypes.html">queryutils.splunktypes</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">queryutils.parse</a></li>
+</ul>
+</li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+      |
+      <a href="_sources/queryutils.parse.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

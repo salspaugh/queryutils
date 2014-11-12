@@ -1,0 +1,394 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.jsonparser &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="index.html" />
+    <link rel="up" title="API documentation" href="documentation.html" />
+    <link rel="next" title="queryutils.splunktypes" href="queryutils.splunktypes.html" />
+    <link rel="prev" title="queryutils.csvparser" href="queryutils.csvparser.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="queryutils.splunktypes.html" title="queryutils.splunktypes"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="queryutils.csvparser.html" title="queryutils.csvparser"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="documentation.html" accesskey="U">API documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-queryutils.jsonparser">
+<span id="queryutils-jsonparser"></span><h1>queryutils.jsonparser<a class="headerlink" href="#module-queryutils.jsonparser" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="queryutils.jsonparser.get_json_files">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">get_json_files</tt><big>(</big><em>dir</em>, <em>limit=1048576000</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#get_json_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.get_json_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of the full paths to each of the .json files in a directory.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>dir</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The path to the directory to check</li>
+<li><strong>limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The approximate number of bytes to read in (for testing)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.get_users_from_directory">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">get_users_from_directory</tt><big>(</big><em>limit=52428800</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#get_users_from_directory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.get_users_from_directory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a generator over user objects and their queries from the given directory.</p>
+<p>The directory is assumed to contain a list of .json files, each of which 
+is assumed to adhere to the format expected by get_users_from_file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The approximate number of bytes to read in (for testing)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">generator</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.get_users_from_file">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">get_users_from_file</tt><big>(</big><em>filename</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#get_users_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.get_users_from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a generator over user objects and their queries from the given file.</p>
+<p>It is assumed that the file will contain a list of results in JSON format.
+Each result is a dictionary with an assumed set of keys.
+This is the format that corresponds to Version.FORMAT_2012.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The path to the .json file containing the queries</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">generator</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.is_error">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">is_error</tt><big>(</big><em>splunk_record_key</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#is_error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.is_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if the given string is an error key.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key</strong> (<em>splunk_record</em>) &#8211; The string to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.is_search">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">is_search</tt><big>(</big><em>splunk_record_key</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#is_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.is_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if the given string is a search key.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key</strong> (<em>splunk_record</em>) &#8211; The string to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.is_search_length">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">is_search_length</tt><big>(</big><em>splunk_record_key</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#is_search_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.is_search_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if the given string is a search length key.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key</strong> (<em>splunk_record</em>) &#8211; The string to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.is_search_range">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">is_search_range</tt><big>(</big><em>splunk_record_key</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#is_search_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.is_search_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if the given string is a range key.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key</strong> (<em>splunk_record</em>) &#8211; The string to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.is_search_type">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">is_search_type</tt><big>(</big><em>splunk_record_key</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#is_search_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.is_search_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if the given string is a search type key.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>key</strong> (<em>splunk_record</em>) &#8211; The string to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.load_and_combine_data_from_json">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">load_and_combine_data_from_json</tt><big>(</big><em>jsonfiles</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#load_and_combine_data_from_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.load_and_combine_data_from_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all the data in a list of .json files in a big list.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>jsonfile</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The path to the .json file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list or dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.load_data_from_json">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">load_data_from_json</tt><big>(</big><em>jsonfile</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#load_data_from_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.load_data_from_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the data contained in a .json file and return the corresponding Python object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>jsonfile</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The path to the .json file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list or dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.print_parseable_searches">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">print_parseable_searches</tt><big>(</big><em>jsonfiles</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#print_parseable_searches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.print_parseable_searches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print all the parseable searches contained in a set of files containing Splunk results.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>jsonfiles</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of .json files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.print_searches">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">print_searches</tt><big>(</big><em>splunk_results</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#print_searches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.print_searches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print all the searches contained in a set of files containing Splunk results.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>splunk_results</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of .json files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.put_json_files">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">put_json_files</tt><big>(</big><em>iterable</em>, <em>prefix</em>, <em>encoder=&lt;class 'json.encoder.JSONEncoder'&gt;</em>, <em>limit=10485760</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#put_json_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.put_json_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write out a list of .json files with the data in the given iterable.</p>
+<p>TODO: Delete me.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>iterable</strong> (<em>iterable</em>) &#8211; A list or other iterable containing items to encode</li>
+<li><strong>prefix</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The prefix to name each of the files with (files will be named e.g., prefix.1, prefix.2, etc.)</li>
+<li><strong>encoder</strong> (<a class="reference external" href="http://docs.python.org/library/json.html#json.JSONEncoder" title="(in Python v2.7)"><em>json.JSONEncoder</em></a>) &#8211; The encoder object that knows how to encode the items in iterable</li>
+<li><strong>limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The approximate number of bytes to read in (for testing)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.splunk_result_iter">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">splunk_result_iter</tt><big>(</big><em>jsonfiles</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#splunk_result_iter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.splunk_result_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yield the Splunk result dicts from the given .json file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>jsonfiles</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of .json files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">generator</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="queryutils.jsonparser.splunk_result_record_iter">
+<tt class="descclassname">queryutils.jsonparser.</tt><tt class="descname">splunk_result_record_iter</tt><big>(</big><em>jsonfiles</em><big>)</big><a class="reference internal" href="_modules/queryutils/jsonparser.html#splunk_result_record_iter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.jsonparser.splunk_result_record_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yield the Splunk result dicts from the list of .json files.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>jsonfiles</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; A list of .json files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">generator</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing code</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="documentation.html">API documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="queryutils.query.html">queryutils.query</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.user.html">queryutils.user</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.source.html">queryutils.source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.databases.html">queryutils.databases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.files.html">queryutils.files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.csvparser.html">queryutils.csvparser</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">queryutils.jsonparser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.splunktypes.html">queryutils.splunktypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.parse.html">queryutils.parse</a></li>
+</ul>
+</li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+      |
+      <a href="_sources/queryutils.jsonparser.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

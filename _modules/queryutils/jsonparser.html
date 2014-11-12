@@ -1,0 +1,348 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.jsonparser &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for queryutils.jsonparser</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">dateutil.parser</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">splparser.parser</span>
+
+<span class="kn">from</span> <span class="nn">user</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">query</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+<span class="kn">from</span> <span class="nn">splparser.exceptions</span> <span class="kn">import</span> <span class="n">SPLSyntaxError</span><span class="p">,</span> <span class="n">TerminatingSPLSyntaxError</span>
+
+<span class="n">BYTES_IN_MB</span> <span class="o">=</span> <span class="mi">1048576</span>
+
+<div class="viewcode-block" id="get_users_from_file"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.get_users_from_file">[docs]</a><span class="k">def</span> <span class="nf">get_users_from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a generator over user objects and their queries from the given file.</span>
+
+<span class="sd">    It is assumed that the file will contain a list of results in JSON format.</span>
+<span class="sd">    Each result is a dictionary with an assumed set of keys.</span>
+<span class="sd">    This is the format that corresponds to Version.FORMAT_2012.</span>
+
+<span class="sd">    :param filename: The path to the .json file containing the queries</span>
+<span class="sd">    :type filename: str</span>
+<span class="sd">    :rtype: generator</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">queries</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">users</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">splunk_result_iter</span><span class="p">([</span><span class="n">filename</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="s">&#39;user&#39;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="s">&#39;_time&#39;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="s">&#39;search&#39;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+            <span class="n">username</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s">&#39;user&#39;</span><span class="p">]</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dateutil</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s">&#39;_time&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">.</span><span class="si">%f</span><span class="s">&#39;</span><span class="p">))</span>
+            <span class="n">query_string</span> <span class="o">=</span> <span class="nb">unicode</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s">&#39;search&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+            <span class="n">searchtype</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s">&#39;searchtype&#39;</span><span class="p">]</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="n">query_string</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
+            <span class="n">query</span><span class="o">.</span><span class="n">search_type</span> <span class="o">=</span> <span class="n">searchtype</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">username</span> <span class="ow">in</span> <span class="n">users</span><span class="p">:</span>
+                <span class="n">users</span><span class="p">[</span><span class="n">username</span><span class="p">]</span> <span class="o">=</span> <span class="n">user</span>
+            <span class="n">users</span><span class="p">[</span><span class="n">username</span><span class="p">]</span><span class="o">.</span><span class="n">queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="c"># TODO: FIXME: This might cause incorrectness if a user&#39;s queries span files. </span>
+    <span class="c"># For the data we have, this is not an issue, since cases never span files.</span>
+    <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">users</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">yield</span> <span class="n">user</span>
+</div>
+<div class="viewcode-block" id="get_users_from_directory"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.get_users_from_directory">[docs]</a><span class="k">def</span> <span class="nf">get_users_from_directory</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">50</span><span class="o">*</span><span class="n">BYTES_IN_MB</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a generator over user objects and their queries from the given directory.</span>
+
+<span class="sd">    The directory is assumed to contain a list of .json files, each of which </span>
+<span class="sd">    is assumed to adhere to the format expected by get_users_from_file.</span>
+
+<span class="sd">    :param limit: The approximate number of bytes to read in (for testing)</span>
+<span class="sd">    :type limit: int</span>
+<span class="sd">    :rtype: generator</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">raw_data_files</span> <span class="o">=</span> <span class="n">get_json_files</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">raw_data_files</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">get_users_from_file</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">user</span>
+</div>
+<div class="viewcode-block" id="get_json_files"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.get_json_files">[docs]</a><span class="k">def</span> <span class="nf">get_json_files</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">1000</span><span class="o">*</span><span class="n">BYTES_IN_MB</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a list of the full paths to each of the .json files in a directory.</span>
+
+<span class="sd">    :param dir: The path to the directory to check</span>
+<span class="sd">    :type dir: str</span>
+<span class="sd">    :param limit: The approximate number of bytes to read in (for testing)</span>
+<span class="sd">    :type limit: int</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">json_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">bytes_added</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">dirnames</span><span class="p">,</span> <span class="n">filenames</span><span class="p">)</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="nb">dir</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">filename</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span> <span class="o">==</span> <span class="s">&#39;.json&#39;</span><span class="p">:</span> 
+                <span class="n">full_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="nb">dir</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">filename</span>
+                <span class="n">json_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_filename</span><span class="p">)</span> 
+                <span class="n">bytes_added</span> <span class="o">+=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">full_filename</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">bytes_added</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">json_files</span>
+    <span class="k">return</span> <span class="n">json_files</span>
+</div>
+<div class="viewcode-block" id="put_json_files"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.put_json_files">[docs]</a><span class="k">def</span> <span class="nf">put_json_files</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">encoder</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="o">*</span><span class="n">BYTES_IN_MB</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Write out a list of .json files with the data in the given iterable.</span>
+
+<span class="sd">    TODO: Delete me.</span>
+
+<span class="sd">    :param iterable: A list or other iterable containing items to encode</span>
+<span class="sd">    :type iterable: iterable</span>
+<span class="sd">    :param prefix: The prefix to name each of the files with (files will be named e.g., prefix.1, prefix.2, etc.)</span>
+<span class="sd">    :type prefix: str</span>
+<span class="sd">    :param encoder: The encoder object that knows how to encode the items in iterable</span>
+<span class="sd">    :type encoder: json.JSONEncoder</span>
+<span class="sd">    :param limit: The approximate number of bytes to read in (for testing)</span>
+<span class="sd">    :type limit: int</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_files</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">num_files</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;.json&#39;</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">st_size</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">iterable</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">,</span><span class="s">&#39;: &#39;</span><span class="p">),</span> <span class="n">cls</span><span class="o">=</span><span class="n">encoder</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">num_files</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">num_files</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;.json&#39;</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">st_size</span>
+</div>
+<div class="viewcode-block" id="load_data_from_json"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.load_data_from_json">[docs]</a><span class="k">def</span> <span class="nf">load_data_from_json</span><span class="p">(</span><span class="n">jsonfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Load the data contained in a .json file and return the corresponding Python object.</span>
+
+<span class="sd">    :param jsonfile: The path to the .json file</span>
+<span class="sd">    :type jsonfile: str</span>
+<span class="sd">    :rtype: list or dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">jsondata</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">jsonfile</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jsondata</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span>
+</div>
+<div class="viewcode-block" id="load_and_combine_data_from_json"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.load_and_combine_data_from_json">[docs]</a><span class="k">def</span> <span class="nf">load_and_combine_data_from_json</span><span class="p">(</span><span class="n">jsonfiles</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return all the data in a list of .json files in a big list.</span>
+
+<span class="sd">    :param jsonfile: The path to the .json file</span>
+<span class="sd">    :type jsonfile: str</span>
+<span class="sd">    :rtype: list or dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">combined_data</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">jsonfile</span> <span class="ow">in</span> <span class="n">jsonfiles</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">load_data_from_json</span><span class="p">(</span><span class="n">jsonfile</span><span class="p">)</span>
+        <span class="n">combined_data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">combined_data</span>
+</div>
+<div class="viewcode-block" id="print_searches"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.print_searches">[docs]</a><span class="k">def</span> <span class="nf">print_searches</span><span class="p">(</span><span class="n">splunk_results</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Print all the searches contained in a set of files containing Splunk results.</span>
+
+<span class="sd">    :param splunk_results: A list of .json files</span>
+<span class="sd">    :type splunk_results: list</span>
+<span class="sd">    :rtype: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">splunk_result_record_iter</span><span class="p">(</span><span class="n">splunk_results</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">is_search</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">print</span> <span class="n">value</span>
+</div>
+<div class="viewcode-block" id="print_parseable_searches"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.print_parseable_searches">[docs]</a><span class="k">def</span> <span class="nf">print_parseable_searches</span><span class="p">(</span><span class="n">jsonfiles</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Print all the parseable searches contained in a set of files containing Splunk results.</span>
+<span class="sd">    </span>
+<span class="sd">    :param jsonfiles: A list of .json files</span>
+<span class="sd">    :type jsonfiles: list</span>
+<span class="sd">    :rtype: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">splunk_result_record_iter</span><span class="p">(</span><span class="n">jsonfiles</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">is_search</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">splparser</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="nb">unicode</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+                <span class="k">print</span> <span class="n">value</span>
+            <span class="k">except</span> <span class="n">SPLSyntaxError</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">except</span> <span class="n">TerminatingSPLSyntaxError</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">except</span> <span class="ne">UnicodeEncodeError</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">sys</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;UnicodeEncodeError encountered while parsing: &quot;</span> <span class="o">+</span> <span class="n">value</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+</div>
+<div class="viewcode-block" id="splunk_result_iter"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.splunk_result_iter">[docs]</a><span class="k">def</span> <span class="nf">splunk_result_iter</span><span class="p">(</span><span class="n">jsonfiles</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Yield the Splunk result dicts from the given .json file.</span>
+<span class="sd">    </span>
+<span class="sd">    :param jsonfiles: A list of .json files</span>
+<span class="sd">    :type jsonfiles: list</span>
+<span class="sd">    :rtype: generator</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">jsonfile</span> <span class="ow">in</span> <span class="n">jsonfiles</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">load_data_from_json</span><span class="p">(</span><span class="n">jsonfile</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">splunk_result</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">splunk_result</span>
+</div>
+<div class="viewcode-block" id="splunk_result_record_iter"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.splunk_result_record_iter">[docs]</a><span class="k">def</span> <span class="nf">splunk_result_record_iter</span><span class="p">(</span><span class="n">jsonfiles</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Yield the Splunk result dicts from the list of .json files.</span>
+<span class="sd">    </span>
+<span class="sd">    :param jsonfiles: A list of .json files</span>
+<span class="sd">    :type jsonfiles: list</span>
+<span class="sd">    :rtype: generator</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">jsonfile</span> <span class="ow">in</span> <span class="n">jsonfiles</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">load_data_from_json</span><span class="p">(</span><span class="n">jsonfile</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">splunk_result</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">record_iter</span> <span class="o">=</span> <span class="n">splunk_result</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">record_iter</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+ </div>
+<div class="viewcode-block" id="is_search"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.is_search">[docs]</a><span class="k">def</span> <span class="nf">is_search</span><span class="p">(</span><span class="n">splunk_record_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return True if the given string is a search key.</span>
+
+<span class="sd">    :param splunk_record key: The string to check</span>
+<span class="sd">    :type splunk_record_key: str</span>
+<span class="sd">    :rtype: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">splunk_record_key</span> <span class="o">==</span> <span class="s">&#39;search&#39;</span>
+</div>
+<div class="viewcode-block" id="is_error"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.is_error">[docs]</a><span class="k">def</span> <span class="nf">is_error</span><span class="p">(</span><span class="n">splunk_record_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return True if the given string is an error key.</span>
+
+<span class="sd">    :param splunk_record key: The string to check</span>
+<span class="sd">    :type splunk_record_key: str</span>
+<span class="sd">    :rtype: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">splunk_record_key</span> <span class="o">==</span> <span class="s">&#39;error&#39;</span>
+</div>
+<div class="viewcode-block" id="is_search_type"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.is_search_type">[docs]</a><span class="k">def</span> <span class="nf">is_search_type</span><span class="p">(</span><span class="n">splunk_record_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return True if the given string is a search type key.</span>
+
+<span class="sd">    :param splunk_record key: The string to check</span>
+<span class="sd">    :type splunk_record_key: str</span>
+<span class="sd">    :rtype: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">splunk_record_key</span> <span class="o">==</span> <span class="s">&#39;searchtype&#39;</span>
+</div>
+<div class="viewcode-block" id="is_search_length"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.is_search_length">[docs]</a><span class="k">def</span> <span class="nf">is_search_length</span><span class="p">(</span><span class="n">splunk_record_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return True if the given string is a search length key.</span>
+
+<span class="sd">    :param splunk_record key: The string to check</span>
+<span class="sd">    :type splunk_record_key: str</span>
+<span class="sd">    :rtype: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">splunk_record_key</span> <span class="o">==</span> <span class="s">&#39;searchlength&#39;</span>
+</div>
+<div class="viewcode-block" id="is_search_range"><a class="viewcode-back" href="../../queryutils.jsonparser.html#queryutils.jsonparser.is_search_range">[docs]</a><span class="k">def</span> <span class="nf">is_search_range</span><span class="p">(</span><span class="n">splunk_record_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return True if the given string is a range key.</span>
+
+<span class="sd">    :param splunk_record key: The string to check</span>
+<span class="sd">    :type splunk_record_key: str</span>
+<span class="sd">    :rtype: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">splunk_record_key</span> <span class="o">==</span> <span class="s">&#39;range&#39;</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">API documentation</a></li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

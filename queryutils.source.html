@@ -1,0 +1,319 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>queryutils.source &mdash; queryutils 0.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="queryutils 0.0.0 documentation" href="index.html" />
+    <link rel="up" title="API documentation" href="documentation.html" />
+    <link rel="next" title="queryutils.databases" href="queryutils.databases.html" />
+    <link rel="prev" title="queryutils.parse" href="queryutils.parse.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="queryutils.databases.html" title="queryutils.databases"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="queryutils.parse.html" title="queryutils.parse"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">queryutils 0.0.0 documentation</a> &raquo;</li>
+          <li><a href="documentation.html" accesskey="U">API documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-queryutils.source">
+<span id="queryutils-source"></span><h1>queryutils.source<a class="headerlink" href="#module-queryutils.source" title="Permalink to this headline">¶</a></h1>
+<dl class="method">
+<dt id="queryutils.source.DataSource.__init__">
+<tt class="descclassname">DataSource.</tt><tt class="descname">__init__</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="queryutils.source.DataSource">
+<em class="property">class </em><tt class="descclassname">queryutils.source.</tt><tt class="descname">DataSource</tt><a class="reference internal" href="_modules/queryutils/source.html#DataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a source of Splunk queries, users, and other data.</p>
+<p>This object should not be initialized directly, rather, one of
+its subclasses should be used.</p>
+<dl class="method">
+<dt id="queryutils.source.DataSource.close">
+<tt class="descname">close</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes a database connection.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.commit">
+<tt class="descname">commit</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.commit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.commit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Commits a database transaction.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.connect">
+<tt class="descname">connect</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a database connection.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.extract_command_stage">
+<tt class="descname">extract_command_stage</tt><big>(</big><em>parsetree</em>, <em>commands</em><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.extract_command_stage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.extract_command_stage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the subtrees of the given parsetree that have one of the given commands.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>self</strong> (<em>queryutils.DataSource</em>) &#8211; The current source object</li>
+<li><strong>parsetree</strong> (<em>splparser.ParseTreeNode</em>) &#8211; The given parsetree from which to extract &#8220;STAGE&#8221; subtrees</li>
+<li><strong>commands</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; The list of commands to match against</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">generator</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.extract_sessions_from_user">
+<tt class="descname">extract_sessions_from_user</tt><big>(</big><em>user</em>, <em>remove_suspicious=True</em><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.extract_sessions_from_user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.extract_sessions_from_user" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract sessions from the given users&#8217; queries.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>self</strong> (<em>queryutils.DataSource</em>) &#8211; The current source object</li>
+<li><strong>user</strong> (<em>queryutils.User</em>) &#8211; The user whose queries to sessionize</li>
+<li><strong>remove_suspicious</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Whether or not to remove queries labeled suspicious</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.get_interactive_queries">
+<tt class="descname">get_interactive_queries</tt><big>(</big><em>parsed=False</em><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.get_interactive_queries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.get_interactive_queries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a generator over the set of interactive Query objects without users or sessions.</p>
+<p>Returns only parsed queries if <cite>parsed</cite> is True (defaults to False).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.get_queries">
+<tt class="descname">get_queries</tt><big>(</big><em>parsed=False</em><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.get_queries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.get_queries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a generator over a set of Query objects without users or sessions.</p>
+<p>Returns only parsed queries if <cite>parsed</cite> is True (defaults to False).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.get_unique_aggregates">
+<tt class="descname">get_unique_aggregates</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.get_unique_aggregates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.get_unique_aggregates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all unique stages that are &#8220;Aggregate&#8221; types.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>self</strong> (<em>queryutils.DataSource</em>) &#8211; The current source object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">generator</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.get_unique_augments">
+<tt class="descname">get_unique_augments</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.get_unique_augments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.get_unique_augments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all unique stages that are &#8220;Augment&#8221; types.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>self</strong> (<em>queryutils.DataSource</em>) &#8211; The current source object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">generator</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.get_unique_filters">
+<tt class="descname">get_unique_filters</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.get_unique_filters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.get_unique_filters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all unique stages that are &#8220;Filter&#8221; types.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>self</strong> (<em>queryutils.DataSource</em>) &#8211; The current source object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">generator</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.get_unique_stages">
+<tt class="descname">get_unique_stages</tt><big>(</big><em>commands</em><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.get_unique_stages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.get_unique_stages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a generator over unique stages whose command matches one of the given types.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>self</strong> (<em>queryutils.DataSource</em>) &#8211; The current source object</li>
+<li><strong>commands</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; The list of commands to match against</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">generator</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.get_users">
+<tt class="descname">get_users</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.get_users"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.get_users" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a generator over a set of User objects.</p>
+<p>The User objects returned are not guaranteed to be returned with their
+corresponding queries and sessions.
+If you need users with their corresponding sessions or queries, use a 
+different method.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.get_users_with_queries">
+<tt class="descname">get_users_with_queries</tt><big>(</big><em>parsed=False</em><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.get_users_with_queries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.get_users_with_queries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a generator over a set of Users with queries.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="queryutils.source.DataSource.get_users_with_sessions">
+<tt class="descname">get_users_with_sessions</tt><big>(</big><em>parsed=False</em><big>)</big><a class="reference internal" href="_modules/queryutils/source.html#DataSource.get_users_with_sessions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#queryutils.source.DataSource.get_users_with_sessions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a generator over a set of Users with queries and sessions.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">queryutils</a></h1>
+
+
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=salspaugh&repo=splparser&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="downloading.html">Downloading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Running the tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing code</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="documentation.html">API documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="queryutils.query.html">queryutils.query</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.user.html">queryutils.user</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.splunktypes.html">queryutils.splunktypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.parse.html">queryutils.parse</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">queryutils.source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.databases.html">queryutils.databases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.files.html">queryutils.files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.csvparser.html">queryutils.csvparser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queryutils.jsonparser.html">queryutils.jsonparser</a></li>
+</ul>
+</li>
+</ul>
+
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Sara Alspaugh, Jessica Lin.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.1</a>
+      
+      |
+      <a href="_sources/queryutils.source.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>
