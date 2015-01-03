@@ -28,36 +28,116 @@ logger = get_logger("queryutils")
 logger.debug("Imported in %f seconds." % elapsed)
 
 class Database(DataSource):
+    """Represents a Database that stores Splunk query data.
+    """
 
     def __init__(self, wildcard, dbtype):
+        """Create a Database object.
+
+        :param self: The object being created
+        :type self: queryutils.databases.Database
+        :param wildcard: The query param substitution character
+        :type wildcard: str
+        :param dbtype: The type of database (postgres or sqlite3)
+        :type dbtype: str
+        :rtype: queryutils.databases.Database
+        """
         self.wildcard = wildcard
         self.connection = None
         self.dbtype = dbtype
         super(Database, self).__init__()
 
     def initialize_tables(self):
+        """Initialize the tables used for analyzing Splunk queries.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: None
+        """
         self.initialize_users_table()
         self.initialize_sessions_table()
         self.initialize_queries_table()
         self.initialize_parsetrees_table()
 
     def initialize_users_table(self):
+        """Initialize the table for storing Splunk user info.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: None
+        """
         self.execute_queries(queryutils.sql.INIT_USERS[self.dbtype])
 
     def initialize_sessions_table(self):
+        """Initialize the table for storing Splunk session info.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: None
+        """
         self.execute_queries(queryutils.sql.INIT_SESSIONS[self.dbtype])
 
     def initialize_queries_table(self):
+        """Initialize the table for storing Splunk queries.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: None
+        """
         self.execute_queries(queryutils.sql.INIT_QUERIES[self.dbtype])
     
     def initialize_parsetrees_table(self):
+        """Initialize the table for storing parsed Splunk queries.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: None
+        """
         self.execute_queries(queryutils.sql.INIT_PARSETREES[self.dbtype])
    
+    def execute_queries(self, queries):
+        """Execute the given queries against the current database object.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param queries: The queries to execute
+        :type queries: list
+        :rtype: None
+        """
+        self.connect()
+        for query in queries:
+            logger.debug("Executing \n%s" % query)
+            self.execute(query)
+        self.close()
+
     def load_users_and_queries_from_source(self, module, *args):
+        """Load the user and query tables from a given source.
+
+        The source is initialized from the module and args that are passed in.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param module: The module to use to initialize the source
+        :type module: module
+        :param args: Arguments to initilize the module
+        :type args: tuple
+        :rtype: None
+        """
         src = module(*args) 
         self.load_users_and_queries(src)
 
     def load_users_and_queries(self, src):
+        """Load the user and query tables from a given source.
+
+        The source is assumed to be initialized and to have a method called
+        "get_users_with_queries".
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param src: The source to load users and queries from
+        :type src: queryutils.source.DataSource
+        :rtype: None
+        """
         src.connect()
         self.connect()
         uid = qid = 1
@@ -73,6 +153,15 @@ class Database(DataSource):
         src.close()
 
     def load_parsed(self):
+        """Parse the queries and load them into the parsetree table.
+
+        Each query is read from the query table, which is assumed to be
+        populated, and then the result is loaded into the parsetree table.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: None
+        """
         self.connect()
         cursor = self.execute("SELECT id, text FROM queries")
         for row in cursor.fetchall():
@@ -84,14 +173,17 @@ class Database(DataSource):
                 self.insert_parsetree(parsetree)
         self.close()
 
-    def execute_queries(self, queries):
-        self.connect()
-        for query in queries:
-            logger.debug("Executing \n%s" % query)
-            self.execute(query)
-        self.close()
-
     def insert_user(self, user, uid):
+        """Insert user data into the user table.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param user: The user to insert
+        :type user: queryutils.user.User
+        :param uid: The ID to assign to the inserted user
+        :type uid: int
+        :rtype: None
+        """
         self.execute("INSERT INTO users \
                 (id, name, case_id, user_type) \
                 VALUES (" + ",".join([self.wildcard]*4) + ")", 
@@ -99,6 +191,20 @@ class Database(DataSource):
         self.commit()
 
     def insert_query(self, query, qid, uid, sid):
+        """Insert query data into the query table.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param query: The query to insert
+        :type query: queryutils.query.Query
+        :param qid: The ID to assign to the inserted query
+        :type qid: int
+        :param uid: The ID of the user the query belongs to
+        :type uid: int
+        :param sid: The ID of the session the query belongs to
+        :type sid: int or None
+        :rtype: None
+        """
         self.execute("INSERT INTO queries \
                 (id, text, time, is_interactive, is_suspicious, \
                 execution_time, earliest_event, latest_event, range, is_realtime, \
@@ -112,6 +218,14 @@ class Database(DataSource):
         self.commit()
 
     def insert_parsetree(self, parsetree):
+        """The parsed query to insert into the parsetree table.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param parsetree: The parsed query to insert
+        :type parsetree: splparser.parsetree.ParseTreeNode
+        :rtype: None
+        """
         self.execute("INSERT INTO parsetrees \
                 (parsetree, query_id) \
                 VALUES (" + ", ".join([self.wildcard]*2) +")",
@@ -119,15 +233,33 @@ class Database(DataSource):
         self.commit()
 
     def close(self):
+        """Close the connection to the database.
+        
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: None
+        """
         if self.connection:
             self.connection.close()
             self.connection = None
 
     def commit(self):
+        """Commit the latest query.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: None
+        """
         if self.connection:
             self.connection.commit()
 
     def get_users(self):
+        """Get the users from the current database.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: generator
+        """
         self.connect()
         ucursor = self.execute("SELECT id, name, case_id, user_type FROM users")
         for row in ucursor.fetchall():
@@ -139,6 +271,14 @@ class Database(DataSource):
         self.close()
     
     def get_users_with_queries(self, parsed=False):
+        """Get the users from the current database with queries.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param parsed: Whether or not to include the query parsetree
+        :type parsed: bool
+        :rtype: generator
+        """
         self.connect()
         for user in self.get_users():
             for query in self.get_query_from_user(user.id, parsed=parsed):
@@ -150,12 +290,28 @@ class Database(DataSource):
         self.close()
 
     def _query_columns_string(self):
+        """Returns the list of columns of the query table as a string.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: str
+        """
         return ", ".join(["id", "text", "time", "is_interactive", 
             "is_suspicious", "search_type", "earliest_event", "latest_event", 
             "range", "is_realtime", "splunk_search_id", "execution_time", 
             "saved_search_name", "user_id", "session_id"]) 
 
     def _form_query_from_data(self, row, parsed):
+        """Create a query from a row from the query table.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param row: The row fetched from the database
+        :type row: dict
+        :param parsed: Whether or not the row contains parsetree data 
+        :type parsed: bool
+        :rtype: queryutils.query.Query
+        """
         d = { k:row[k] for k in row.keys() }
         q = Query(row["text"], row["time"])
         q.__dict__.update(d)
@@ -164,6 +320,16 @@ class Database(DataSource):
         return q
 
     def get_queries(self, querytype=QueryType.ALL, parsed=False):
+        """A generator over all the queries of the given type from the database.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param querytype: The type of query to return
+        :type querytype: str
+        :param parsed: Whether or not to return the parsetree for the query too
+        :type parsed: bool
+        :rtype: generator
+        """
         self.connect()
         queries_select = self._query_columns_string()
         parsetree_select = ", parsetree"
@@ -195,6 +361,18 @@ class Database(DataSource):
         self.close()
 
     def get_query_in_session(self, sid, parsed=False, bad=False):
+        """A generator that returns all the queries from the given session.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param sid: The session to fetch queries from
+        :type sid: int
+        :param parsed: Whether to return the parsed version of the queries
+        :type parsed: bool
+        :param bad: Whether to return "bad" (mislabeled as interactive) queries 
+        :type bad: bool
+        :rtype: generator
+        """
         self.connect()
         session_col = ""
         table = "queries"
@@ -235,6 +413,16 @@ class Database(DataSource):
         self.close()
 
     def get_interactive_queries_with_text(self, text, parsed=False):
+        """Get all interactive queries that match the given text.
+        
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param text: The text that the retrieved queries should match
+        :type text: str
+        :param parsed: Whether to return the parsed version of the queries
+        :type parsed: bool
+        :rtype: generator
+        """
         self.connect()
         qcursor = self.execute("SELECT id, text, time, is_interactive, is_suspicious, search_type, \
                         earliest_event, latest_event, range, is_realtime, \
@@ -251,6 +439,12 @@ class Database(DataSource):
         self.close()
 
     def get_parsetrees(self):
+        """Return the parsed queries from the parsetree table. 
+        
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: generator
+        """
         self.connect()
         cursor = self.execute("SELECT parsetree, query_id FROM parsetrees")
         for row in cursor.fetchall():
@@ -264,6 +458,16 @@ class Database(DataSource):
         self.close()
     
     def get_sessions(self, parsed=False, bad=False):
+        """Return all the sessions
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param parsed: Whether to return the parsed version of the queries
+        :type parsed: bool
+        :param bad: Whether to return "bad" (mislabeled as interactive) queries 
+        :type bad: bool
+        :rtype: generator
+        """
         self.connect()
         sessions = {}
         for user in self.get_users():
@@ -283,13 +487,22 @@ class Database(DataSource):
         self.close()
 
     def get_session_from_user(self, uid, bad=False):
+        """Generator that returns the sessions from the user with the given ID. 
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param uid: The ID of the user for which to fetch seesions
+        :type uid: int
+        :param bad: Whether to return "bad" (mislabeled as interactive) queries 
+        :type bad: bool
+        :rtype: generator
+        """
         self.connect()
         table = "sessions"
         if bad:
             table = "bad_sessions"
-        sql = "SELECT id, user_id, session_type \
-                                FROM %s \
-                                WHERE user_id=%s" % (table, self.wildcard)
+        sql = "SELECT id, user_id, session_type FROM %s \
+                WHERE user_id=%s" % (table, self.wildcard)
         scursor = self.execute(sql, (uid,))
         for row in scursor.fetchall():
             d = { k:row[k] for k in row.keys() }
@@ -299,6 +512,14 @@ class Database(DataSource):
         self.close()
 
     def mark_suspicious_users(self):
+        """Mark the users that are probably machine or system users.
+       
+        These users are listed in queryutils.databases.SUSPICIOUS_USER_NAMES.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :rtype: None
+        """
         sql = "UPDATE users SET user_type=%s WHERE id=%s" % (self.wildcard, self.wildcard)
         self.connect()
         for user in self.get_users():
@@ -326,7 +547,15 @@ class Database(DataSource):
                 logger.debug("Not marking: %s" % query.text)
         self.close()
 
-    def sessionize_queries(self, threshold, remove_suspicious=False):
+    def sessionize_queries(self, remove_suspicious=False):
+        """Form sessions from queries and update the session and query tables.
+
+        :param self: The current object
+        :type self: queryutils.databases.Database
+        :param remove_suspicious: Don't include suspicious queries in sessions
+        :type remove_suspicious: bool
+        :rtype: None
+        """
         table = "sessions"
         column = "session_id"
         if not remove_suspicious:
@@ -349,20 +578,46 @@ class Database(DataSource):
         self.close()
 
 class PostgresDB(Database):
+    """Representes a Postgres database that stores query data.
+    """
 
     def __init__(self, database, user, password):
+        """Create a PostgresDB object.
+
+        :param self: The object being created
+        :type self: queryutils.databases.PostgresDB
+        :param path: The path to the data to load
+        :type path: str
+        :rtype: queryutils.databases.PostgresDB
+        """
         self.database = database
         self.user = user
         self.password = password
         super(PostgresDB, self).__init__("%s", "postgres")
 
     def connect(self):
+        """Connect to the database object.
+
+        :param self: The object being created
+        :type self: queryutils.databases.PostgresDB
+        :rtype: None
+        """
         if self.connection is not None:
             return self.connection
         self.connection = psycopg2.connect(database=self.database, user=self.user, password=self.password)
         return self.connection
 
     def execute(self, query, *params):
+        """Execute the given query against the current database.
+
+        :param self: The object being created
+        :type self: queryutils.databases.PostgresDB
+        :param query: The query to execute
+        :type query: str 
+        :param params: The parameters to the query
+        :type params: tuple
+        :rtype: psycopg2._psycopg.cursor
+        """
         if self.connection is None:
             self.connect()
         cursor = self.connection.cursor(cursor_factory=RealDictCursor)
@@ -371,12 +626,28 @@ class PostgresDB(Database):
 
 
 class SQLite3DB(Database):
+    """Representes a SQLite database that stores query data.
+    """
 
     def __init__(self, path):
+        """Create a SQLite3DB object.
+
+        :param self: The object being created
+        :type self: queryutils.databases.SQLite3DB
+        :param path: The path to the data to load
+        :type path: str
+        :rtype: queryutils.databases.SQLite3DB
+        """
         self.path = path
         super(SQLite3DB, self).__init__("?", "sqlite3")
 
     def connect(self):
+        """Connect to the database object.
+
+        :param self: The object being created
+        :type self: queryutils.databases.SQLite3DB
+        :rtype: None
+        """
         if self.connection is not None:
             return self.connection
         self.connection = sqlite3.connect(self.path)
@@ -384,6 +655,16 @@ class SQLite3DB(Database):
         return self.connection
 
     def execute(self, query, *params):
+        """Execute the given query against the current database.
+
+        :param self: The object being created
+        :type self: queryutils.databases.SQLite3DB
+        :param query: The query to execute
+        :type query: str 
+        :param params: The parameters to the query
+        :type params: tuple
+        :rtype: sqlite3.Connection
+        """
         if not self.connection:
             self.connect()
         cursor = self.connection.cursor()
