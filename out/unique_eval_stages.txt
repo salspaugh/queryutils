@@ -1,0 +1,957 @@
+eval temp=if(group="Last 60 days" ,signature,null())
+eval orig_host=upper(orig_host)
+eval kb_diff = abs(round(avg_kb_last_week - avg_kb_today, 4))
+eval UnknownFailureRate=round(if(Total=0,0,100*UnknownError/Total),2)
+eval MX=MX/(65*12*10)
+eval filename=strftime(now(), "%Y%m%d%H%Msplunk-results-non-vvm" )
+eval latest_occurence=strftime(latest_occurence,"%c" )
+eval del_grp = if(isnotnull(Account_Name), Group_Name, Target_Account_Name)
+eval files=if(isnotnull(filename),mvcount(filename),0)
+eval search=case(gt_length>0 AND lt_length>0, "(Web.http_user_agent_length>" .floor(gt_length)." OR Web.http_user_agent_length<" .ceil(lt_length).")" ,gt_length>0 AND lt_length<=0,"Web.http_user_agent_length>" .floor(gt_length),gt_length<=0 AND lt_length>0,"Web.http_user_agent_length<" .ceil(lt_length),gt_length<=0 AND lt_length<=0,"Web.http_user_agent_length=-1" )
+eval startLastWeek = relative_time(now(),"-168h@h" )\n
+eval KnownError=Error-UnknownError
+eval OtherError=OtherError*100/Total
+eval current_count=if(timeDiff<=86400,count,null())
+eval Day = strftime(strptime( TimeNew, "%m-%d-%Y" ), "%Y-%m-%d" )
+eval ActualIncStartDateEpoc=round(ActualIncStartDateEpoc)
+eval engineString=mvjoin(engines,"%" )
+eval signature = if(isnull(signature),"Signature doesnt exist" ,signature)
+eval node_count=ceil(total_job_time*64/70000)
+eval timestampepoch = strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%3NZ" )
+eval evt_time=strftime(_time,"%F %T" )
+eval subnet="no match"
+eval Version=if(Version like "+Win%" , "N/A" , Version)\n
+eval launchStart=mvindex(sessionBegin,0)
+eval rate=ha_tr
+eval IP=c_ip
+eval Day=substr(TimeNew, -4)+"-" + substr(TimeNew, 1, 2)+"-" + substr(TimeNew, 4, 2)
+eval catname="UniqueReconAppsEvent"
+eval src_connect = if(cidrmatch("128.146.0.0/16" , client_ip) OR cidrmatch("140.254.0.0/16" , client_ip) OR cidrmatch("164.107.0.0/16" , client_ip), "Internal" ,"External" )
+eval starttime=relative_time(lastTime,"-59m" )
+eval Hits=mvindex(Data, 2)\n
+eval first_time=strftime(first_time,"%+" )
+eval Host=if(isnull(Host), upper(host), upper(Host))\n
+eval preapdex = if (rtime <2,.5,0)
+eval "Alert Type" ="Error"
+eval Peak=round(Peak, 2)
+eval RequestURI= coalesce(RequestURI,cs_uri_stem)
+eval esize=len(_raw)
+eval sigid=if(((aid>4452352) AND (aid<4452363)),1,sigid)
+eval perc=MISS/(HIT+MISS)*100
+eval second2lastTime=if(mvcount(second2lastTime)>=2,mvindex(second2lastTime,mvcount(second2lastTime)-2),second2lastTime)
+eval displayperftype=replace(perftype,"vmware:perf:" ,"" )
+eval alert_name ="High CPU Consumption"
+eval "src_user" =if(isnull(src_user),"unknown" ,src_user)
+eval size_gb=round((size_bytes/1024/1024/1024),1)\r\n
+eval current_diff=if(dayDiff<=7,(lastTime-firstTime)/86400,null())
+eval "User Name" = mvindex(user,0).", " .mvindex(user,1)." " .mvindex(user,2)\n
+eval finaldomain=if(isnull(Caller_Domain),Domain_Name,Caller_Domain)
+eval "signature" =if(isnull(signature),"unknown" ,signature)
+eval threshold_severity=case(avg_metric>95, "critical" , avg_metric>75, "warning" , isnotnull(avg_metric), "normal" , 1==1, "unknown" )
+eval last_time=strftime(last_time,"%+" )
+eval ULLS=floor(ULLS/1024/1024) \n
+eval GB = round(b/1024/1024/1024,3)
+eval iterator_label="Source IP"
+eval overprovisionedPct=round(if(provisionedAmount!=0,(provisionedAmount/capacity)-1,0)*100,2)
+eval interest=coalesce(subnet,src)
+eval "Data Type" ="MSPU" \n
+eval Percent_CPU_Load = 100 - pctIdle
+eval app=if(view="SOAR" ,app,"" )\n
+eval available_connections=maximum_connections-current_connections
+eval ed = strftime(lt, "%Y%m%d" )
+eval totalSpace=`BytesToGigaBytes(capacity)`
+eval zVal = round(((currentLogins - avgLogins)/stdevLogins), 2)\n
+eval Status="OK"
+eval percent=100*count/total
+eval AgeAlert=case(Priority="Low" AND Age > 14400,"YES" ,Priority="Medium" AND Age > 14400,"YES" , Priority="High" AND Age > 7200, "YES" )
+eval sort_rank=case(like(server_role,"%search%head%" ),1,like(server_role,"%indexer%" ) OR like(server_role,"%peer%" ),2,like(server_role,"%forwarder%" ),3)
+eval heartbeat_age = if(heartbeat_age>0,ceiling(heartbeat_age),0) \n
+eval Parent=if(Parent="None" ,Item,Parent)\n
+eval size_gb=round((size_bytes/1024/1024/1024),1)
+eval avg_bytes_today=round(avg_bytes_today)
+eval lastseen=_time
+eval autoimport=if(autoimport==0,"Disabled" ,"Enabled" )
+eval percentFailed=totalFail/totalCount*100
+eval KB=round(bytes/1024,4)
+eval quota=if(isnull(effective_quota),quota,effective_quota)
+eval iterator_label="IP"
+eval names=split(nameString,"%" )
+eval hostClass=substr(host,1,6)
+eval ssv=mvindex(sensor,1)
+eval unshared=`format_bytes(unshared)`
+eval et=_time-1
+eval alert_name ="Low Available Memory"
+eval timediff=if(host=="# Problem Servers" ,x,timediff)
+eval apdex = if(rtime < .5,1,preapdex)
+eval cncip=case(name like "%Outbound%" AND direction="Outbound" ,srcIP, direction="Unknown" ,dstIP, name like "%Inbound%" AND direction="Inbound" ,srcIP)
+eval event_week=strftime(_time,"%U" )
+eval NumberOfSensors=if(NumberOfSensors="-3-0" ,"Unknown" ,NumberOfSensors)
+eval src_count_limit=src_count_avg+3.5*src_count_stdev
+eval MB=round(MB, 1) ] \n
+eval gauge_base=0\n
+eval cs_client=mvindex(cs_user_agent,5)\n
+eval MinQuotaGB=MinQuota/1024/1024/1024
+eval "Average /mon" =round(MAVG,0)
+eval activity = case(EventCode=660,"Group Member Added" ,EventCode=4756,"Group Member Added" ,EventCode=632,"Group Member Added" ,EventCode=4728,"Group Member Added" ,EventCode=633,"Group Member Removed" ,EventCode=4729,"Group Member Removed" ,EventCode=661,"Group Member Removed" ,EventCode=4757,"Group Member Removed" ,EventCode=631,"Group Created" ,EventCode=4727,"Group Created" ,EventCode=635,"Group Created" ,EventCode=4731,"Group Created" ,EventCode=658,"Group Created" ,EventCode=4754,"Group Created" ,EventCode=662,"Group Deleted" ,EventCode=4758,"Group Deleted" ,EventCode=638,"Group Deleted" ,EventCode=4734,"Group Deleted" ,EventCode=634,"Group Deleted" ,EventCode=4730,"Group Deleted" ,EventCode=643,"Policy Changed" ,EventCode=4739,"Policy Changed" ,EventCode=624,"Account Created" ,EventCode=4720,"Account Created" ,EventCode=630,"Account Deleted" ,EventCode=4726,"Account Deleted" ,EventCode=636,"Group Member Added" ,EventCode=4732,"Group Member Added" ,EventCode=637,"Group Member Removed" ,EventCode=4733,"Group Member Removed" ,1=1,"Fix Me" )
+eval Date =strftime(_time,"%Y-%m-%d" )
+eval Time=strftime(_time,"%Y-%m-%d %H:%M:%S.%3N" )
+eval stack_quota=quota
+eval provisioned=committed+uncommitted
+eval Message = "CPU Usage between 80-95%"
+eval combinedfilenamesizessname=mvzip(combinedfilenamesize, snapshot_name)
+eval "file_size (MB)" =round(file_size,2)
+eval ssstate=if(ssstate=="N/A" , null(), ssstate)
+eval splitby = "none" \n
+eval VPNEndpoint=host
+eval ExceptionDetails=if( like( ExceptionDetails , "%Entitlement check error%" ), "Entitlement check error" , ExceptionDetails )\n
+eval Read_status=if(Status="finished reading" OR Status="open file" ,"Read" ,"Ignored" ) \n
+eval quotaGB=round(quota/1024/1024/1024,3)\n
+eval Submit_date=strftime(Submit_date,"%+" )
+eval ms=RTIME/1000
+eval "Source IP" = coalesce(Source_Network_Address,"" )
+eval att_score=name."," .sigscore
+eval Used=round(used_bytes/1024/1024/1024, 3)
+eval Age=epocCurrentTime-ActualIncStartDateEpoc
+eval alert_name="RDPSession"
+eval currentPlanId_new=if(currentPlanId=,100,currentPlanId),eval newPlanId_new=if(newPlanId=,100,newPlanId)
+eval spread=tostring(spreadRaw,"duration" )
+eval x=if(secs>1800,1,0)
+eval zoom = "zoom=\"334%\" zoom_x=\"-128.58%\" zoom_y=\"-113.11%\""
+eval Status=if(Reason="notinuse" ,"notinuse" ,Status)\n
+eval maximum_connections= [ search index=conn_* host=mtmprodappa1 sourcetype=maxceqcconnections
+eval db=lower(db)
+eval host=sos_server \n
+eval error_ratio=error/(ok)
+eval utilisation=round(total_time*100/(65*5*60*1000),2)
+eval hours = round(time_diff/3600)
+eval alert_name ="Low Disk Space"
+eval sd = strftime(et1, "%Y%m%d" )
+eval event_type=eventtype
+eval pii_length=len(pii_clean)
+eval StatA=Status
+eval reqcount=case(sc_status=200, "Good Resp Count" , sc_status=500, "HTTP 500 Count" , NOT sc_status=200 OR sc_status=500, "HTTP Other Count" )
+eval os=case(match(f5useragent, "Windows" ), "Windows" , match(f5useragent, "Macintosh" ), "Mac" , match(f5useragent, "Android" ), "Android" , match(f5useragent, "Linux" ), "Linux" , match(f5useragent, "iPhone" ), "iPhone" , match(f5useragent, "iPad" ), "iPad" )
+eval subnet=case(cidrmatch("10.0.0.0/8" ,src),"10.0.0" ,\n cidrmatch("172.16.0.0/12" ,src),"172.16.0" ) \n
+eval parent=if(parentType="ComputeResource" OR parentType="Folder" , rootFolderMoid, parent)
+eval txnfield=host+"/" +tms_threadid+"/" +tms_blob_type
+eval IP=srcIp."," .dstIP
+eval currentPlanId_new=if(currentPlanId=,100,currentPlanId)
+eval newsub=if(subnet="" ,src,0)\n
+eval offset = cur_week - event_week
+eval time_diff = right_now - last_seen
+eval percent_by_status=(total_by_requeststatus*100/total)
+eval type=case(like(ARGS, "%search%" ),"searches" ,like(ARGS, "%root.py_%start%" ) OR like(COMMAND, "%splunkweb%" ) OR (like(COMMAND,"%python%" ) AND like(ARGS,"%appserver%" )), "Splunk Web" ,like(ARGS,"%-p_%start%" ) OR (like(COMMAND,"%splunkd%" ) AND like(ARGS, "service" )),"splunkd server" )
+eval search=case(gt_bytes>0 AND lt_bytes>0, "(All_Traffic.bytes>" .floor(gt_bytes)." OR All_Traffic.bytes<" .ceil(lt_bytes).")" ,gt_bytes>0 AND lt_bytes<=0,"All_Traffic.bytes>" .floor(gt_bytes),gt_bytes<=0 AND lt_bytes>0,"All_Traffic.bytes<" .ceil(lt_bytes),gt_bytes<=0 AND lt_bytes<=0,"All_Traffic.bytes=-1" )
+eval duration=tostring(duration,"duration" )
+eval cs_host = coalesce(cs_host,Domain)
+eval host_env = host +"," + environment \n
+eval dest_nt_host = lower(host)
+eval "app" =if(isnull(app),"unknown" ,app)
+eval kb_diff_perc = round(100*kb_diff/avg_kb_last_week, 4)
+eval logname=if(isnull(logname),uname,logname)
+eval group=if(_time<relative_time(time(),"@d" ) AND timeDiff<=5184000,"Last 60 days" ,group)
+eval output_file="home_threat_data.xml"
+eval path=coalesce(remotePath, device)
+eval H=frozenTimePeriodInSecs/60/60%24
+eval db = coalesce(INSTANCE_NAME,SERVICE_NAME,SID)
+eval bytes_diff = abs(avg_bytes_last_week - avg_bytes_today)
+eval "CBM Type" ="ULLS-A(E)" \n
+eval DayAgo= strftime(DayAgo,"%Y-%m-%d:%H%M " )
+eval percent=round(percent,2)
+eval capacity=`format_bytes(capacity)`
+eval warnLevel=(totalSpace-threshold_warnlevel)
+eval Hours=round(Hours,1) \n
+eval SR=succ/att*100
+eval MSRPC_SMB_Application_Fragments_outbound_enabled=if(MSRPC_SMB_Application_Fragments_outbound_enabled==0,"Disabled" ,"Enabled" )
+eval catname="UniqueExeFromTempEvent"
+eval app="Splunk_CiscoSecuritySuite"
+eval movie_color="#FF0000"
+eval Seconds =round(Seconds,2)
+eval infected_host_country=infected_host_country+";"
+eval MaxCpuMhz=MhzPerCore*CPUCores
+eval app="amMap"
+eval src_addr=mvindex(virusip , 0)
+eval subnet=case(cidrmatch("192.168.0.0/16" ,src),"192.168.*" ,\n cidrmatch("172.16.0.0/12" ,src),"172.16.*" )\n
+eval Version=mvindex(Version,0)\n
+eval DayAgo = relative_time(now(), "-2d@d" )
+eval ip=src_ip
+eval MSPU=floor(MSPU/1024/1024) ] \n
+eval Mid-Tier=mvindex(source, 3)\n
+eval dow=strftime(_time,"%w" )
+eval provisionedAmount=capacity-spaceAfterUncommitedAllocation
+eval host=lower(host)
+eval domain_url=domain_url+";"
+eval afterwindowdays=afterwindow/86400
+eval txnfield=index+"/" +host+"/" +tms_threadid
+eval MsgDetails =if(like(MsgDetails,"%Zip - The length of the value must fall within the range%" ),"Zip - The length of the value must fall within the range" , MsgDetails)\n
+eval timeDiff=lastTime-firstTime
+eval ExceptionDetails=if( like( ExceptionDetails , "%Failed to open index writer for sub index%" ), "Failed to open index writer for sub index" , ExceptionDetails )\n
+eval gauge_danger=totalGB*0.8\n
+eval fields = mvzip(tmpPluginName,tmpPluginLoadTime)
+eval count_avg=round(count_avg, 2)
+eval first_time=_time
+eval right_now = now()
+eval MsgDetails =if(like(MsgDetails,"%There was a problem with the redbox API%" ),"There was a problem with the redbox API" , MsgDetails)\n
+eval "Pourcentage %" =round(percent,2)
+eval parent=if(type="VirtualMachine" , vmhost, parent)
+eval 5G=case((MinQuotaGB>2 AND MinQuotaGB<=5),TISmb)
+eval lc=mvjoin(distinguishedName,"###" )
+eval reqMSG=if(reqMSG2!="" ,reqMSG2,reqMSG)
+eval combinedfilenamesizessnamedescr=mvzip(combinedfilenamesizessname, snapshot_descr)
+eval requests=1
+eval quotaGB=round(quota/1024/1024/1024,3)
+eval actionby = if(isnull(Account_Name), Caller_User_Name, mvindex(Account_Name,0))
+eval src=(if(subnet="" ,src="1" ,src))\n
+eval Version=mvindex(Version, 1)\n
+eval Message = replace (Message, "[\n\r,]" ," " )
+eval et1=floor(_time-1)
+eval match=if(host=newhost,"No Changes" ,"Hosts Changed" )
+eval "severity" =if(isnull(severity),"unknown" ,severity)
+eval required_node_count=ceil(total_job_time*64/70000)
+eval "dest" =if(isnull(dest),"unknown" ,dest)
+eval CorruptPDFError=CorruptPDFError*100/Total
+eval Date = strftime(info_min_time, "%m/%d/%Y" )
+eval time=strftime(_time, "%H:%M:%S %m-%d-%y" )
+eval CATEGORY=mvindex(CATEGORY, 0)
+eval host_state = mvfilter(match(tag, "^host*" ))
+eval Date_hour = strftime(_time, "%a%H" )
+eval mintime=strftime(mintime,"%F %T" )
+eval label="% error last hour"
+eval date_hour=tonumber(strftime(_time,"%H" ))
+eval Diff_Percent=(((Today*1.0)/(Last_Week*1.0))-1)*100 \n
+eval RemainingCapacity_GB=tostring(round((freeSpace)/(1024*1024*1024), 2))
+eval tcp_ip_marked = replace(tcp_ip_marked,"$" ,"-tcp," )
+eval Deviation(%)=round((Deviation/112) * 100,2)
+eval patst=strptime(ProcessAllTicketsStart, "%H:%M" )
+eval endLastWeek = relative_time(now(),"-192h@h" )\n
+eval Destination_Port = dest_port
+eval committed=`format_bytes(committed)`
+eval User=coalesce(src_user,dst_user,"unknown_user" )
+eval Manager2="v" + Manager2 + " -- " + count
+eval subnet=case(cidrmatch("172.16.60.0/24" ,src),"172.16.60" , cidrmatch("172.16.61.0/24" ,src),"172.16.61" , cidrmatch("172.23.200.0/24" ,src),"172.23.200" , cidrmatch("172.23.201.0/24" ,src),"172.23.201" , cidrmatch("172.23.202.0/24" ,src),"172.23.202" )
+eval IPwCountry=dst_ip." (" .src_country.")"
+eval Human_Readable=strftime(Seconds, "%M:%S.%n" )
+eval "Alert Name" ="High VM CPU"
+eval username=RegUsername
+eval stack_id=stack_ids\n
+eval Boot_Duration=round(Boot_Duration/1000,2)
+eval Metric="RAM" \n
+eval rp=if(isnull(rp), if(isnull(lastseenrp), "N/A" , lastseenrp), rp)
+eval Time_ms = Time_ms / 1000
+eval time_delta_days=floor(timedelta/86400)
+eval "MBs/HR" =round(MBs/Hours, 2) \n
+eval Value=Value/1024/1024
+eval PercentHighBalloonHosts=round((HighHosts/TotalHosts)*100,2)
+eval method_and_path=method." " .path
+eval dst_ip = tcp_ip_marked+"," +udp_ip_marked
+eval displayfield=replace(field, "^p_" ,"" )
+eval Mbytes = bytes/1048576
+eval logoff = if(host_state="host-logoff" , _time, "1" ) \n
+eval creator = if(isnotnull(Account_Name), Account_Name, Caller_User_Name)
+eval action = case(EventCode=624,"Account Created" ,EventCode=4720,"Account Created" ,EventCode=630,"Account Deleted" ,EventCode=4726,"Account Deleted" )
+eval ssw=mvindex(sigv,0)
+eval _time=firstTime
+eval Access=if(Access<"0" ,"0" ,Access)
+eval custom_policy=customers+" -- " + custom_policy
+eval ServiceCount=if(ServicesNotRunning!="" ,mvcount(Service),0)
+eval c_ip = coalesce(c_ip,ClientIP)
+eval source=if(len(source)>85, substr(source, 0, 40) + " ... " + substr(source,len(source)-40), source)
+eval subnet=case(cidrmatch("192.168.0.0/16" ,src),"192.168./16" ,\n cidrmatch("172.16.0.0/12" ,src),"172.16./12" )\n
+eval Account = if(isnull(Security_ID), Member_ID, mvindex(Security_ID,1))
+eval TimeoutError=TimeoutError*100/Total
+eval newsub=if(subnet="" ,subnet,src)\n
+eval Date=strftime(_time,"%Y-%m-%d %H:%M:%S.%3N" )
+eval MB = Bytes/1024/1024
+eval Message = "Memory Usage between 80-95%"
+eval cs_client=replace(cs_client, "\)" , "" )\n
+eval domain_url=if(match(domain_url, "BLANK.*" ),"" ,domain_url)
+eval name=pool
+eval newname=NAME.";"
+eval ErrorMessage=trim(ErrorMessage)\n
+eval sessionBegin=if(searchmatch("sessionstart" ),_time,null())
+eval is_dc=1\n
+eval username=Username
+eval logon =if(host_state="host-logon" , _time, "1" ) \n
+eval Submit_date = strftime(Submit_date,"%Y-%m-%d:%H:%M" )
+eval keep_count=0
+eval src=(if(subnet="" ,src="" ,src))\n
+eval search=prefix+cutoff
+eval yesterday = strftime(notnow,"%B %d, %Y" )
+eval APPIdEnabled=if(APPIdEnabled==0,"Disabled" ,"Enabled" )
+eval Version=mvindex(Version, 0)\n
+eval marker = case(_time >= startToday, "Today" ,\n ((_time <=startLastWeek) AND (_time >= endLastWeek)),"Last_Week" ,\n 1=1,"Outside Range" )\n
+eval gt = tostring(gt, "duration" )
+eval PercentHighCPUHosts=round((HighCPUHosts/TotalHosts),2)
+eval server_label=server_role." : " .sos_server
+eval LastAccess=Status." days"
+eval Seconds = round(Seconds,2)
+eval app="SplunkforCiscoSecurity"
+eval catname="UniqueListenEvent"
+eval MsgDetails =if(like(MsgDetails,"%RBXAPI-ACCT-008%" ),"code=RBXAPI-ACCT-008 message=Cannot set account as billing default: Cannot set card as default account: Address not verified" ,MsgDetails)
+eval timediff_seconds=abs(round(patst2-patst))
+eval daysAgo=(now()-lastTime)/3660
+eval spaceAfterUncommitedAllocation=freeSpace-uncommitted
+eval product_version=case(isnull(product_version_old),product_version,isnull(product_version) OR time_product_version<time_product_version_old,product_version_old,product_version==product_version_old,product_version_old,product_version!=product_version_old,product_version)
+eval vms=mvjoin(vms,";" )
+eval _time=strftime(_time, "%H:%M:%S %m-%d-%yy" )
+eval ltime=strftime(time,"%c" )
+eval marker=case(offset==0,"4. Current Week" ,offset==1,"3. Last Week" ,offset==2,"2. Two Weeks Ago" , offset=3, "1. Three Weeks Ago" )
+eval dayDiff=timeDiff/86400
+eval keep_count=if(isnull(keep_count),1,keep_count)
+eval Service=if(Name="# Problem Services" ,ServiceCount,Service)
+eval marker = "today"
+eval tcp_ip_marked = mvjoin(tcp_ip,"-tcp," )
+eval ReportHour = strftime(BucketHour, "%H" )
+eval newsub=if(subnet="" ,src,subnet)\n
+eval st = tms_timestamp
+eval parentType=if(type="VirtualMachine" , "HostSystem" , if(parent=rootFolderMoid, "RootFolder" , parentType))
+eval Data=mvindex(Agent,2) \n
+eval subnet=case(cidrmatch("192.168.0.0/16" ,src),"192.168.0.0/16" )\n
+eval Status="Contact" \n
+eval user=lower(user)
+eval GB=kb/1048576
+eval "MBs/HR" =round(MBs/Hours,2) \n
+eval count=count*60
+eval search=case(gt_length>0 AND lt_length>0, "(Web.url_length>" .floor(gt_length)." OR Web.url_length<" .ceil(lt_length).")" ,gt_length>0 AND lt_length<=0,"Web.url_length>" .floor(gt_length),gt_length<=0 AND lt_length>0,"Web.url_length<" .ceil(lt_length),gt_length<=0 AND lt_length<=0,"(Web.url_length=-1)" )
+eval alert_name="High ICA Session Latency"
+eval Message = Name." Free: " .PercentFreeSpace."% Total: " .TotalSpace."GB Free: " .FreeSpace."GB"
+eval Q1_Percent=(Q1_Blocked/(Q1_Blocked+Q1_Allowed)*100)
+eval newsub=if(subnet="" ,src,)\n
+eval "count (Mil)" =round(count,2)
+eval "% used" =round(b/maxsz*100,2)
+eval write_iops=wReq_PS
+eval temptype = substr(host, 2, len(host))
+eval url=mvindex(url, 0)
+eval size_kb=round(size_bytes/1024)
+eval _time=lastReceived
+eval RAWOLD="Older Raw logs"
+eval att_score=name."," .score
+eval in_violation=if(warning_count>4 OR (warning_count>2 AND stack_id=="free" ),"yes" ,"no" )\n
+eval threshold_critlevel=threshold_critlevel/100
+eval environment=mvindex(environment,0)
+eval dst_ip_port = mvzip(dst_ip,dst_port)
+eval External_IP=if(isnull(direction), dst_ip, src_ip)
+eval MsgDetails =if(like(MsgDetails,"%RBXAPI-GEN-CUST-004%" ),"code=RBXAPI-GEN-CUST-004 message=There was a problem with the redbox API. Please submit an error report to apisupport@redbox.com that includes the values of the request, activityId, and datetime nodes above" ,MsgDetails)
+eval SPLUNK="Splunk"
+eval sstime=if(sstime=="N/A" , null(), sstime)
+eval launchInit=if(searchmatch("startSession" ),_time,null())
+eval default_policy=default_policy+" -- " +customers
+eval MB=kb/1024
+eval totalfileinfo=mvzip(combinedfilenamesizessnamedescrtimestatedepth, filetype)
+eval timeSinceLastIndexed=now()-recentTime
+eval timeFactor=if(timeDifInMin>20,0,timeDifInMin)
+eval _time=_time+86400*7*offset
+eval alert = "Hours since logs last seen - " .hours
+eval newsub=if(subnet="" ,src)\n
+eval geo=upper(geo)
+eval url=mvindex(url, 0, 2)
+eval diff=count-limit
+eval alert_name ="High Disk I/O"
+eval Location=if(isnull(direction), dst_location, src_location)
+eval MSRPC_SMB_Application_Fragments_inbound_enabled=if(MSRPC_SMB_Application_Fragments_inbound_enabled==0,"Disabled" ,"Enabled" )
+eval PercentHighSwapHosts=round((HighHosts/TotalHosts)*100,2)
+eval mb_rec = sum_bytes_recieved/(1024*1024)
+eval MailboxQuota=case(MinQuotaGB<=1, "1G" , MinQuotaGB<=2,"2G" , MinQuotaGB<=5,"5G" ,MinQuotaGB>5,"GreaterThan5G" )
+eval cs_host= coalesce(cs_host,Domain)
+eval autopush=if(autopush==0,"Disabled" ,"Enabled" )
+eval count_label="Event"
+eval dsname=mvindex(datastore,0)
+eval "Locked_Account" =coalesce(Win2K8_acc,Target_Account_Name)
+eval customer=if(isnull(priorityClientId),"ALL" ,priorityClientId)
+eval host=name
+eval dest_user_subject=dest_nt_domain."\\" .user
+eval DMB=round(DMB,1) ] \n
+eval timediff=tostring(secs,"duration" )
+eval rate=1
+eval old_domain_url=if(isnull(old_domain_url),"BLANK;" ,old_domain_url)
+eval "Data Type" ="ULLS-A(E)" \n
+eval AuditLog=floor(AuditLog/1024/1024) ] \n
+eval released=if(dhcp_state="dhcp-released" , _time, "1" )\n
+eval percentFailed=round(percentFailed,0)
+eval Agent=cs_User_Agent_\n
+eval hbtperc=hbtsucc/hbtsent*100
+eval count_limit_exceeded=if(count>count_limit, "true" , "false" )
+eval FirstSeen=_time
+eval critLevel=(totalSpace-threshold_critlevel)
+eval DATETIME = strftime(_time, "%F %H:%M:%S" )
+eval mac_addr=mvindex(cs_user_agent, 4)\n
+eval MsgDetails =if(like(MsgDetails,"%No active subscripton found:%" ),"No active subscripton found:" , MsgDetails)\n
+eval arbor_impact_Gbps=case(arbor_impact_unit=="kbps" ,arbor_impact_amount/1000000, arbor_impact_unit=="Mbps" ,arbor_impact_amount/1000, arbor_impact_unit=="Gbps" ,arbor_impact_amount)
+eval totalGB=round(total/1024/1024/1024,3)
+eval minutes=sessiontime/60
+eval GB=mb/1024
+eval SentFromSourceWithinFourHours=if(timeSinceLastSent<=(3600*4), "Yes" , "No" )
+eval Message = "Memory Usage over 95%"
+eval log=replace(log, "smroot" , "dotnet" )
+eval grandParentName=if(grandparentType=="ClusterComputeResource" , grandParentName, "" )
+eval time_product_version=case(isnull(product_version_old),time_product_version,isnull(product_version) OR time_product_version<time_product_version_old,time_product_version_old,product_version==product_version_old,time_product_version_old,product_version!=product_version_old,time_product_version)
+eval match = "matched"
+eval PercentHighSwapHosts=PercentHighSwapHosts/100
+eval value="pool=" . pool
+eval lt2=round(lt2,3)+0.001
+eval NumberOfSensors=if(sens=-1,-1,NumberOfSensors)
+eval catname=name."Event"
+eval mb=kb/1024
+eval lag=if((now()-latest_time)>600,"bad" ,"fine" ) ]
+eval Success=Success*100/Total
+eval _time = _time+1800
+eval PercentHighCPUVm=round((HighCPUVms/TotalVMs),2)
+eval "dvc" =if(isnull(dvc),"unknown" ,dvc)
+eval domain_url=if(isnull(domain_url),"BLANK;" ,domain_url)
+eval site=substr(source,8,3)
+eval _time=lastTime
+eval Friendly="Rule Quota has been reached"
+eval pool=active_pool_ids
+eval gauge_top=totalGB+0.001\n
+eval ssdepth=if(ssdepth==0, null(), ssdepth)
+eval interest=coalesce(src,subnet) \n
+eval timedelta = now()-_time
+eval maxsz = if(like("*" ,"*" ),stacksz,poolsz)
+eval historical_diff=if(dayDiff>1 AND dayDiff<=8,(lastTime-firstTime)/86400,null())
+eval "Log File" =mvindex(source,6)\n
+eval perFailByErr=failedCount/totalCount*100
+eval udp_ip_marked = mvjoin(udp_ip,"-udp," )
+eval ip=src_ip."," .dest_ip
+eval userSid="%{" +objectSid+"}"
+eval Date=strftime(_time,"%Y-%m-%d" )
+eval StatA=Access \n
+eval Last_Modified_Date=strftime(Last_Modified_Date,"%Y-%m-%d" )
+eval "User_Account" = coalesce(Logon_Account,Logon_account)
+eval assigned=if(dhcp_state="dhcp-assigned" , _time, "1" )\n
+eval client=case(match(apiClientId,"api_.*_browser" ), "browser" , match(apiClientId, "api_cpdf_reader.*" ), "reader_wsapi2" , match(apiClientId, "api_reader_desktop.*" ), "reader_dex" )
+eval command=replace(displayfield,"_.*" ,"" )
+eval username=reqSender
+eval user=mvindex(split(username,"\\" ),-1)\n
+eval UserName="NotAvailable"
+eval first_occurence=strftime(first_occurence,"%c" )
+eval joiner=mvappend(dn,primaryGroupToken)
+eval SiteID=mvindex(source, 3)\n
+eval maxTS=strptime(maxTime, "%Y-%m-%dT%H:%M:%S+0000" )
+eval minuteoftheday =date_hour*60+date_minute
+eval et2=_time
+eval Average=round(Average, 2)
+eval marker = "this day last week"
+eval warning_day=if(category=="pool_over_quota" ,"(" .strftime(create_time,"%B %e, %Y" ).")" ,strftime(create_time-43200,"%B %e, %Y" ))\n
+eval Diff_Percent=(((Today*1.0)/(Last_Week*1.0))-1)*100\n
+eval module=split(module,"," )
+eval UMB=round(UMB,1) ] \n
+eval Service=split(ServicesNotRunning,"," )
+eval Domain= coalesce(Domain,cs_host)
+eval parentName=if(parentName=="host" ,grandParentName,parentName)
+eval historical_count=if(dayDiff>=8,1,0)
+eval owner=if(MSRPC_SMB_Application_Fragments_outbound_enabled=="Disabled" ,"--Many to specify--" ,owner)
+eval subnet="no match" \n
+eval startToday = relative_time(now(),"-24h@h" )\n
+eval PercentHighSumRdyVm=round((HighSumRdyVms/TotalVMs),2)
+eval DATE=strftime(_time,"%F" )
+eval Access = if(Access<"0" ,"0" ,Access)\n
+eval ExceptionDetails=if( like( ExceptionDetails , "%No active subscription is found%" ), "No active subscription is found" , ExceptionDetails )\n
+eval Message = "CPU Usage over 95%"
+eval timestampepoch = strptime(ProcessTerminateTimeStamp, "%Y-%m-%dT%H:%M:%S.%3NZ" )
+eval UnknownError=UnknownError*100/Total
+eval ReceivedFrom=if(match(sourcetype,"vmware:vclog*" ), "vCenter Forwarder" , "Forwarder Appliance" )
+eval UniqueName=Agent + Description + InstanceName\n
+eval catname="LowAvEvent"
+eval secs=now()-recent
+eval gauge_base=0
+eval et=mvindex(st,1)
+eval TISmb=TotalItemSize/1024/1024
+eval url=replace(F5Url, "/[^\/]+3D" , "" )
+eval warning_day=if(category=="pool_over_quota" ,"(" .strftime(create_time,"%B %e, %Y" ).")" ,strftime(create_time-43200,"%B %e, %Y" ))
+eval txnfield=batch_name+"/" +orig_host
+eval Reason=if(Reason="notinuse" ,"Not In Use" ,Reason)\n
+eval temp="foo" ]
+eval auth=mvfilter(eventtype="vpn_auth_failed" OR eventtype="vpn_auth_ok" )
+eval Time = strftime(_time, "%m/%d" )
+eval rp=if(isnull(rp), "N/A" , rp)
+eval PercentHighBalloonHosts=PercentHighBalloonHosts/100
+eval combinedfilenamesizessnamedescrtimestatedepth=mvzip(combinedfilenamesizessnamedescrtimestate, snapshot_depth)
+eval victim=case(cnc_ip=="src_ip" ,dstIP,cnc_ip=="dst_ip" ,srcIP)
+eval description=host
+eval gauge_top=totalGB+0.001
+eval resTimeInMS=round((response_time/1000),2)
+eval newVar1=mvindex(Security_ID,1)
+eval duration=last_time-first_time
+eval Manager2="v" + Manager2+ " -- " + count
+eval Z=round(((mean_bytes-tracker_mean)/stdev),2)
+eval parentType=if(parentType=="ComputeResource" , grandparentType, parentType)
+eval date=month."-01-" .year
+eval _time=_time - 43200
+eval SourceIsEncryptedError=SourceIsEncryptedError*100/Total
+eval usrexp=3
+eval Access=Access." days" \n
+eval Resume_Duration = Resume_Duration/1000
+eval URL=if(type="THREAT" ,1,0)
+eval UMB=UMB/1024/1024 \n
+eval EventCodeDescription=if(isnull(EventCodeDescription) OR len(trim(EventCodeDescription))==0 OR EventCode=="No Description Available-Update windows_eventcode_definitions.csv" , mvindex(split(Message, "." ), 0), EventCodeDescription)\n
+eval minTS=strptime(minTime, "%Y-%m-%dT%H:%M:%S+0000" )
+eval url=replace(url, "^/(s|S)/.*" , "/s/" )
+eval cnc_ip=case((name like "%MALWARE%" ) AND (name like "%Global Threat%" ),"src_ip" ,(name like "%Malware%" ) AND (name like "%Artemis%" ) AND direction="Inbound" ,"src_ip" ,(name like "%Malware%" ) AND (name like "%Artemis%" ) AND direction="Outbound" ,"dst_ip" )
+eval Y=round(D/365,0)
+eval rack=if(isnull(rack),"Everything Else" ,rack)\n
+eval duration_count=avg_duration + " (" + count + ")"
+eval udp_port_str=mvjoin(udp_port,"," )
+eval parent=if(type="VirtualMachine" , vmhost, if(parentType="ComputeResource" OR parentType="Folder" , rootFolderMoid, parent))
+eval usedGB=round(used/1024/1024/1024,3) \n
+eval "Disk Space" =mvindex(Data,0)\n
+eval RemainingCapacity_GB=`BytesToGigaBytes(freeSpace)`
+eval "ids_type" =if(isnull(ids_type),"unknown" ,ids_type)
+eval time_product_version=if(isnotnull(product_version),_time,null())
+eval window=now()-8640000
+eval Last_Week=if(Last_Week==0,1,Last_Week)\n
+eval latest_sec=now()-Last_Event
+eval time=ceil(relative_time(now(), "@m" ))
+eval attack_ip=case(attackip="src_ip" ,srcIp,attackip="dst_ip" ,dstIP)
+eval current_count=if(dayDiff<=7,1,0)
+eval logname=if(isnull(logname),uname,logname) \n
+eval interest=coalesce(src,subnet)
+eval lockout=if(EventCode==644 OR EventCode==4740,"Yes" ,"No" )
+eval FreeCpu=MaxCpuMhz-CpuUsg
+eval CPULoad = PercentProcessorTime
+eval subjectCourriel="Top 200 Domaine+PSA_time"
+eval sourcetype="juniper_srx"
+eval DayAgo= strftime(DayAgo,"%Y-%m-%d" )
+eval os = "win2k3"
+eval tcp_port_str=mvjoin(tcp_port,"," )
+eval act_time=_time
+eval actor=if(EventCode==4767 OR EventCode==671,adminuser,src_host)
+eval CurrentTime=now()
+eval mbps=8*bytes/(60*5)/1000/1000
+eval MaxMemMB=((Mem/1024)/1024)
+eval totalGB=round(total/1024/1024/1024,3)\n
+eval _DBID = replace(_cd, "(\d+):\d+" , "\1" )
+eval actionby = coalesce(Win2k8_by,New_Account_Name,Caller_User_Name)
+eval Quota=round(quota/1024/1024/1024, 3)
+eval ServerName=host
+eval Q2_Percent=(Q2_Blocked/(Q2_Blocked+Q2_Allowed)*100)
+eval overprovisionedPct=(provisioned/capacity - 1)*100
+eval hour=strftime(_time, "%H" ) \n
+eval Q1=ifnull(round(100-Q1_Percent/Q1_IPcount*100, 1), 100)
+eval "Disk Space" =mvindex(Data, 0)\n
+eval _raw = replace (_raw, "[\n\r,]" ," " )
+eval tempstate = substr(host,0,1)
+eval IndexedWithinFourHours=if(timeSinceLastIndexed<=(3600*4), "Yes" , "No" )
+eval UniqueName=Agent + Description + InstanceName \n
+eval lowername=lower(name)
+eval \nx=mvzip(value,id)
+eval NumberOfSensors= mvcount(sens)
+eval 1G=case(MinQuotaGB<=1,TISmb)
+eval "% used" =round(used_bytes/quota*100,2)\n
+eval size_mb=round((size_bytes/1024/1024),1)\r\n
+eval Category=upper(category)
+eval errMsg=MsgDetails
+eval managed=coalesce(managed,0)
+eval bytes_diff_perc = round(100*bytes_diff/avg_bytes_last_week, 4)
+eval day_weekday=strftime(_time, "%A" )
+eval total=succeeded+failed
+eval CoresperSocket=CPUCores/ProcessorSockets
+eval nameString=mvjoin(names,"%" )
+eval time_bucket=strftime(starttime+floor((_time-starttime)/1200)*1200,"%m-%d %H:%M" )+" - " +strftime(starttime+floor((_time-starttime)/1200)*1200+1200,"%m-%d %H:%M" )
+eval GB=round(GB,2)
+eval sens=split(Sensors,";" )
+eval MsgDetails =if(like(MsgDetails,"%already subsrcibed to the subscription%" ),"User already subsrcibed to the subscription" ,MsgDetails)
+eval Avail = round( ( Avail / 1024 ) , 2 )\n
+eval os = "win2k8"
+eval "User_Account" =coalesce(User_Name,Account_Name)
+eval user = if(user="n/a" , null(), user)
+eval cur_week=strftime(now(),"%U" )
+eval cs_client=mvindex(cs_user_agent, 5)\n
+eval begintime=relative_time(now(),"-93m" )
+eval peakdailyusage=round(peakdailyusage,2)
+eval description=coalesce(description, ossec_server)
+eval longitude=mvappend(src_long,NULL,dest_long)
+eval endtime=relative_time(now(),"-3m" )
+eval historical_count=if(timeDiff>86400,count,null())
+eval timeDifInMin= (strptime(eventTime, "%F %T" ) - strptime(regTime, "%F %T" ))/60
+eval lastTime=strftime(lastTime, "%d.%m.%y-%H:%M:%S" )
+eval percent=round(100*count/total)
+eval subnet=case(cidrmatch("204.76.190.0/22" ,src),"204.76.190" ,\n cidrmatch("204.76.190.0/23" ,src),"204.76.190" ) \n
+eval time_delta_days=floor(timedelta/86400) \n
+eval newsub=if(subnet="" ,subnet)\n
+eval ssname=if(ssname=="N/A" , null(), ssname)
+eval MB = round(Bytes/1024/1024)
+eval pool=pool_ids\n
+eval in_violation=if(warning_count>4 OR (warning_count>2 AND stack_id=="free" ),"yes" ,"no" )
+eval frozenDuration=D."d (" .Y."y) " .H."h"
+eval Access=if(Access="0 days" ,"Today" ,Access)\n
+eval StatA=if(StatA<0, "0" , StatA)\n
+eval pod_summary= env +": " + pod_count\n ] \n
+eval DayAgo= relative_time(now(), "-5d@d" )
+eval p=if(Pos>2500,3000,Pos)
+eval PDFIsXFAError=PDFIsXFAError*100/Total
+eval current_count=if(dayDiff<=1,1,0)
+eval percentError=round(failure*100/(success+failure),2)
+eval cs_User_Agent_=coalesce(cs_User_Agent_, UserAgent)
+eval cncport=cncport+";"
+eval Q1=round(100-Q1_Percent/Q1_Usercount*100, 1)
+eval 2G=case((MinQuotaGB>1 AND MinQuotaGB<=2),TISmb)
+eval orig_raw=_raw
+eval marker = if(_time < info_min_time + 7*86400, "last week" , "this week" )
+eval et1=round(et1,3)-0.001
+eval time_taken = coalesce(time_taken,ResponseTimeInMs)
+eval Committed_GB=totalSpace-RemainingCapacity_GB
+eval age = now() - lastTime
+eval planId_new= if(planId=,100,planId)
+eval x=split(x,"," )
+eval lastIndexTime=strftime(recentTime, "%m/%d/%y %H:%M:%S %Z" )
+eval MsgDetails =if(like(MsgDetails,"%No active subscription is found%" ),"No active subscription is found" ,MsgDetails)
+eval timedelta=now()-_time
+eval API=replace(path,"\w{8}-\w{4}-\w{4}-\w{4}-\w{12}" ,"{id}" )
+eval MX=MX/(65*12*2)
+eval DMB=DMB/1024/1024 \n
+eval sensor=split(sens,":" )
+eval engines=split(engineString,"%" )
+eval timestamp=strftime(_time, "%m-%d-%Y %H:%M:%S" )
+eval owner=if(APPIdEnabled="Disabled" ,"--Many to specify--" ,owner)
+eval avgCPUTime=round(avgCPUTime,1)
+eval Value="RDPSession"
+eval lastname=mvindex(split(user,"." ),-1)\n
+eval ssdescr=if(ssdescr=="N/A" , null(), ssdescr)
+eval tms_error_type=eventtype
+eval time_hour=strftime(_time,"%H" )
+eval Total = (Round(Total/(1024*1024),2))
+eval deletedby = if(isnotnull(Account_Name), Account_Name, Caller_User_Name)
+eval signature_zip=mvzip(signature,signature_id)
+eval host = lower(host)
+eval owner=if(MSRPC_SMB_Application_Fragments_inbound_enabled=="Disabled" ,"--Many to specify--" ,owner)
+eval length=len(app)
+eval Application=upper(app)
+eval "30 Days" = "" \n
+eval url_ip=mvindex(url_ip, 0, 2)
+eval TotalFailureRate = round(if(Total=0,0,100*Error/Total),2)
+eval AgeReadable=strftime(Age,"%d:%H:%M" )
+eval "src" =if(isnull(src),"unknown" ,src)
+eval F5Url=replace(F5Url, "\?.+" , "/" )
+eval date_minute = tonumber(strftime(_time,"%M" ))
+eval Hyperspace=if(ProcessName="EpicD78.exe" ,"true" ,"false" )
+eval time_signature_version=case(isnull(signature_version_old),time_signature_version,isnull(signature_version) OR time_signature_version<time_signature_version_old,time_signature_version_old,signature_version==signature_version_old,time_signature_version_old,signature_version!=signature_version_old,time_signature_version)
+eval PDFIsPortfolioError=PDFIsPortfolioError*100/Total
+eval avg_bytes_last_week=round(avg_bytes_last_week)
+eval provisionedSpace=`BytesToGigaBytes(provisioned)`
+eval alert_name ="Application Crash or Hang"
+eval newPlanId_new=if(newPlanId=,100,newPlanId)
+eval MB=Bytes/1024/1024
+eval FDUsed=OpenFileDescriptorCount\n
+eval slave_name=label\n
+eval Action_status=case(Status like "%match whitelist%" , "did not match whitelist" ,Status like "%partial whitelist%" , "did not match whitelist" ,Status like "%Matched blacklist%" ,"matched blacklist" ,1=1,Status)\n
+eval category=mvindex(CATEGORY, 0)
+eval heartbeat_age = now() - _time \n
+eval DomainTitle="Forest: " .ForestName." (" .ForestLevel."), Domain: " .DomainNetBIOSName."\\" .DomainDNSName." (" .DomainLevel.")"
+eval app="SplunkforSnort"
+eval sigv=split(ssv,"." )
+eval combinedfilenamesizessnamedescrtime=mvzip(combinedfilenamesizessnamedescr, snapshot_time)
+eval finalmsg=if(isnull(msg),Change_Type,msg)
+eval time_signature_version=if(isnotnull(signature_version),_time,null())
+eval sc_status = coalesce(sc_status,HttpStatus)
+eval percentError=round(failures*100/total,2)
+eval provisioned=capacity-freeSpace+if(isnull(dsuncommitted),0,dsuncommitted)
+eval command=case(command=="average" ,"avg" , command=="latest" ,"first" , command=="summation" , "sum" )
+eval Computer = coalesce(Caller_Computer_Name,Caller_Machine_Name)
+eval _time = _time+86400*7+1800 ]
+eval day=strftime(_time, "%Y-%m-%d" ) \n
+eval "Data Type" ="MDR" \n
+eval kb=round(kb,0)
+eval spreadRaw=maxTS - minTS
+eval newVar2=mvindex(Security_ID,0)
+eval maximum_connections= [ search index=conn_* host=mtmuatapps1 sourcetype=maxceqcconnections
+eval Boot_Duration= substr(Boot_Duration, 1, len(Boot_Duration)-2)
+eval RAW="Raw logs"
+eval count_limit=count_avg+3.5*count_stdev
+eval MsgDetails =if(like(MsgDetails,"%No active subscription is found%" )," No active subscription is found" ,MsgDetails)
+eval MB = bytes/1048576
+eval cncport=case(detect_window="request" ,dstPort, detect_window="response" AND (direction="Inbound" OR direction="Unknown" ),srcPort, detect_window="response" AND direction="Outbound" ,dstPort, (detect_window="flow" OR detect_window="packet" ) AND direction="Inbound" ,dstPort,(detect_window="flow" OR detect_window="packet" ) AND (direction="Outbound" OR direction="Unknown" ),dstPort)
+eval host=UPPER(host)
+eval Time=_time
+eval latancy_pct=(totallatency/360)*100
+eval label="% error one hour back"
+eval date_now=now()
+eval historical_count=if(dayDiff>1 AND dayDiff<=8,1,0)
+eval failure_count=if(failure_count>0,1,0)
+eval begintime=relative_time(now(),"-63m" )
+eval x=mvzip(value,id)
+eval isPopulated=if(timedatastoresummarycount>0,"Populated" ,"Empty" )
+eval dayDiff=(lastTime-firstTime)/86400
+eval subnet=case(cidrmatch("172.16.60.0/24" ,src),"172.16.60" ,\n cidrmatch("172.16.61.0/24" ,src),"172.16.61" ,\n cidrmatch("172.23.200.0/24" ,src),"172.23.200" ,\n cidrmatch("172.23.201.0/24" ,src),"172.23.201" ,\n cidrmatch("172.23.202.0/24" ,src),"172.23.202" ) \n
+eval prefix="_indextime>"
+eval Message = "Netowrk Output Queue Length over 2"
+eval GatewayAntiMalwareEnabled=if(GatewayAntiMalwareEnabled==0,"Disabled" ,"Enabled" )
+eval Quota=round(quota/1024/1024/1024, 3)\n
+eval pii_hash=md5(pii)
+eval Win2k8_by = mvindex(Account_Name,0)
+eval ActualIncStartDateEpoc=ActualIncStartDate
+eval moid=if(type="RootFolder" , "*" , moid)
+eval host_state = mvfilter(match(tag, "^host*" ))\n
+eval duration_minutes = duration/60
+eval launchStatus=if(searchmatch("sessionstart" ),"success" ,"failure" )
+eval Hits=mvindex(Data,2)\n
+eval uncommitted=`format_bytes(uncommitted)`
+eval dsguid=host+"-" +moid
+eval ImageFileName = replace(ImageFileName, "\\\\" , "\\\\" )
+eval _time=now()
+eval "Data Type" ="Audit Log" \n
+eval Win2K8_acc = mvindex(Account_Name,1)
+eval QuarantineError=QuarantineError*100/Total
+eval Delta=if(value>0,value,value*-1)
+eval MB=round(MB,2)
+eval Total=Success+Error
+eval success_count=if(success_count>0,1,0)
+eval geo=case(\nmatch(host,"WNPC*" ),"40.755718,-79.640933" ,\nmatch(host,"WTPC*" ),"36.223068,-86.698937" ,\nmatch(host,"WSNG*" ),"1.352083,103.819836" ,\nmatch(host,"WQVS*" ),"51.512224,-0.102531" ,\nmatch(host,"WWOK*" ),"51.32452,-0.584986" ,\nmatch(host,"WTOK*" ),"35.689487,139.691706" \n)
+eval parent=if(parentName=="host" ,grandparent,parent)
+eval Deviation = round(Seconds - 112,2)
+eval Hyperthreading=if(active="True" , "Active" , "Inactive" )
+eval MBs=round(MBs,2)
+eval ClusterComputeResource=if(parenttype="ClusterComputeResource" , ParentName, "N/A" )
+eval loadtimeslab=case(time_taken<=1000, "Sub 1 Sec" ,time_taken>1000 AND time_taken <=20000, "1-2 Sec" ,time_taken>2000 AND time_taken <=50000, "2-5 Sec" , time_taken>5000 AND time_taken <=100000, "5-10 Sec" , time_taken >10000 AND time_taken <=20000, "10-20 Sec" , time_taken>20000, "Over 20 Sec" )
+eval size_kb=round(size_bytes/1024)\r\n
+eval "ServerType|Platform" = ServerType." | " .ReleasePlatform
+eval signature_version=case(isnull(signature_version_old),signature_version,isnull(signature_version) OR time_signature_version<time_signature_version_old,signature_version_old,signature_version==signature_version_old,signature_version_old,signature_version!=signature_version_old,signature_version)
+eval host = jmxhost + " (" + jvmDescription + ")" \n
+eval pool=title\n
+eval version=if(view="SOAR" ,version,"" )\n
+eval EventLength=len(_raw)\n
+eval Week = strftime(strptime( TimeNew, "%m-%d-%Y" ), "%U" )
+eval ResponseTimeInMs=(ResponseTime/1000000)
+eval TicketAge= round(TicketAge)
+eval MB=tostring(MB, "commas" )
+eval timeDiff_type=case(timeDiff<=86400,"current" ,timeDiff>86400 AND timeDiff<=172800,"historical" ,1=1,"unknown" )
+eval gb=mb/1024
+eval country=country+";"
+eval "vendor_product" =case(isnotnull(vendor_product),vendor_product,isnotnull(vendor) AND vendor!="unknown" AND isnotnull(product) AND product!="unknown" ,vendor." " .product,isnotnull(vendor) AND vendor!="unknown" AND (isnull(product) OR product="unknown" ),vendor." unknown" ,(isnull(vendor) OR vendor="unknown" ) AND isnotnull(product) AND product!="unknown" ,"unknown " .product,isnotnull(sourcetype),sourcetype,1=1,"unknown" )
+eval Date = strftime(_time, "%m-%d" )
+eval StatA = Access
+eval timestampepoch = strptime(ListenTimeStamp, "%Y-%m-%dT%H:%M:%S.%3NZ" )
+eval reporting_host=upper(reporting_host)
+eval stack_id=title\n
+eval values_count=values_count/1000000
+eval Account=coalesce(Win2K8_acc,New_Account_Name,Target_Account_Name)
+eval notnow = relative_time(now(),"-1d@d" )
+eval Group = coalesce(Target_Account_Name, mvindex(Account_Name,2), Group_Name)
+eval D=frozenTimePeriodInSecs/60/60/24
+eval Hour = strftime(now(),"%m/%d:%H" )
+eval "Upload MBs" ="0" \n
+eval User = if(isnull(Account_Name), User_Name, mvindex(Account_Name,1))
+eval count_label="Cisco Security Event"
+eval percMissingFinish=(start_count-finish_count)*100/(start_count)
+eval subnet=case(cidrmatch("10.0.0.0/8" ,src),"10.0.0" ,\n cidrmatch("172.16.0.0/12" ,src),"172.16.0" ,\n ) \n
+eval RSZ_MB=RSZ_KB/1024
+eval _time=strftime(_time, "%H:%M:%S %m-%d-%y" )
+eval subnet=case(cidrmatch("192.168.0.0/16" ,src),"192.168." ,\n cidrmatch("172.16.0.0/12" ,src),"172.16." )\n
+eval subnet=case(cidrmatch("204.76.190.0/22" ,src),"204.76.190" ,\n cidrmatch("204.76.190.0/23" ,src),"204.76.190" )\n
+eval perFailByErr=round(perFailByErr,0)
+eval LastAccess=if(LastAccess=="1 days" , "1 day" , LastAccess)\n
+eval epocCurrentTime=NOW()
+eval ActualIncStartDate=strftime(ActualIncStartDate,"%+" )
+eval nsearch="(Workstation_Name=" +Workstation_Name+" NOT (user=SYSTEM* OR user=ANONYMOUS*)) OR (Workstation_Name=" +dest_host+" user=localadmin) EventCode=4624"
+eval cncip=case(detect_window="request" ,dstIP, detect_window="response" AND (direction="Inbound" OR direction="Unknown" ),srcIP, detect_window="response" AND direction="Outbound" ,dstIP, (detect_window="flow" OR detect_window="packet" ) AND direction="Inbound" ,dstIP, (detect_window="flow" OR detect_window="packet" ) AND (direction="Outbound" OR direction="Unknown" ),dstIP)
+eval Version=if(Version like "+Win%" ,"N/A" , Version)\n
+eval last_time=_time
+eval MailboxSize=TotalItemSize/1048576
+eval MsgDetails =if(like(MsgDetails,"%ZipPostalCode - The length of the value must fall within the range%" ),"ZipPostalCode - The length of the value must fall within the range" , MsgDetails)\n
+eval File=lower(FileName)
+eval dur=(launchStart-launchInit)
+eval StatA=if(StatA<0,"0" ,StatA)\n
+eval latitude=mvappend(src_lat,NULL,dest_lat)
+eval PercentHighMemVm=round((HighMemVms/TotalVMs),2)
+eval VSZ_MB=VSZ_KB/1024
+eval endtx=round(_time+duration,3)-0.001
+eval st=mvindex(st,0)
+eval A2S=round(MAVG+2*MSTDEV,0)
+eval volume=round(volume/1024/1024,2)
+eval TicketAge=(CurrentTime-Submit_date)/86400
+eval program=mvindex(program, 0)
+eval significant = if(zVal > 4.09 OR pValue1Tail < .005, "true" , "false" )\n
+eval usedGB=round(used/1024/1024/1024,3)
+eval threshold_warnlevel=threshold_warnlevel/100
+eval historical_count=if(dayDiff>1 AND dayDiff<=2,1,0)
+eval slave_name=label
+eval type=coalesce(case(match(_raw, "SSLError" ), "SSLError" , match(_raw, "URLError" ), "URLError" , match(_raw, "HTTPError" ), "HTTPError" , match(_raw, "PO mail:" ), "ErrorDuringConversionError" ), "Other" )
+eval stack_quota=quota\n
+eval lt2=lt+1
+eval Access=if(Access<"0" , "0" , Access) \n
+eval avgResTime = round( avgResTime , 0 )\n
+eval combinedfilenamesizessnamedescrtimestate=mvzip(combinedfilenamesizessnamedescrtime, snapshot_state)
+eval is_scheduled = if(search_id LIKE "scheduler%" , "yes" , "no" )
+eval recentTime=strftime(recentTime, "%d.%m.%y-%H:%M:%S" )
+eval joiner=mvappend(memberOf,primaryGroupID)
+eval endtime=relative_time(now(),"-33m" )
+eval timeSinceLastSent=now()-lastTime
+eval percentError=round(failure*100/(success+failure), 2)
+eval lastReceived = if(kb>0, _time, null)
+eval totalSpace=tostring(round((capacity)/(1024*1024*1024), 2))
+eval _time=info_max_time
+eval path=coalesce(remotePath, path)
+eval Version=mvindex(Version,1)\n
+eval Version=cs_User_Agent_\n
+eval Status=if(Status<"0" ,"0" ,Status)\n
+eval udp_ip_marked = replace(udp_ip_marked,"$" ,"-udp," )
+eval Access=Access." days"
+eval NumberOfSensors= mvcount(split(Sensors,";" ))-1
+eval threat_ip=if(isnotnull(src_threatlist_name), src, if(isnotnull(dest_threatlist_name), dest, threat_ip))
+eval StatA=Access
+eval avg_kb_today = round(avg_kb_today, 4)
+eval "Last Access" =if(LastAccess=="0 days" , " Today" , LastAccess)\n
+eval MBs=round(MBs, 2)
+eval "action" =if(isnull(action),"unknown" ,action)
+eval current_count=if(dayDiff>=7,1,0)
+eval Date = strftime(_time, "%m-%d-%Y" )
+eval et2=round(et2,3)+0.001
+eval _time=strftime(_time, "%H:%M:%S %m-%d-%y" ) AS time_and_date
+eval Type="Datastore"
+eval ComputerName = lower(ComputerName)
+eval newscore=substr(Attscore,-1)
+eval reqstatus=case(sc_status=404,"Not Found" ,sc_status=403,"Access Denied" ,sc_status=500,"Internal Server Error" ,sc_status=301 OR sc_status=302,"Redirected" , sc_status=200,"OK" , NOT sc_status=404 AND NOT sc_status=403 AND NOT sc_status=500 AND NOT sc_status=301 AND NOT sc_status=302 AND NOT sc_status=200,"Others" )
+eval ccr=if(parentType=="ClusterComputeResource" , parent, "N/A" )
+eval FreeMem=MaxMemMB-MemUsg
+eval quota=if(quota=="MAX" ,stack_quota,quota)\n
+eval parent=if(parentType=="ComputeResource" , grandparent, parent)
+eval status=if(latest>(now()-900),"Yes" ,"No" )
+eval afterwindow=firstTime-window
+eval FreeSpace = round(FreeMegabytes/1000,2)
+eval src_mac_seen="true" ]
+eval parentType=if(parent=rootFolderMoid, "RootFolder" , parentType)
+eval maxFileSize=`format_bytes(maxFileSize)`
+eval "7 Days" = "" \n
+eval firstname=mvindex(split(user,"." ),0)\n
+eval maxtime=strftime(maxtime,"%F %T" )
+eval Hours=round(Hours, 1) \n
+eval limit=(3*stdev)+avg
+eval state = case(tempstate == "D" , "Desktop" , tempstate == "L" , "Laptop" )
+eval filename=strftime(now(), "%Y%m%d%H%Msplunk-results-vvm" )
+eval Access="+ 7 days" \n
+eval thisUser = mvindex(user,0).", " .mvindex(user,1)." " .mvindex(user,2)\n
+eval MB=round(MB)
+eval time=strftime(_time, "%Y/%m/%d %H:%M:%S" )
+eval OtherError=Error-SourceIsEncryptedError-CorruptPDFError-UnknownError-PDFIsPortfolioError-PDFIsXFAError-TimeoutError-QuarantineError
+eval pool=title
+eval subnet=case(cidrmatch("10.0.0.0/8" ,src),"10.0.0" , cidrmatch("172.16.0.0/12" ,src),"172.16.0" )
+eval "Alert Name" ="High Host CPU"
+eval avgTotalCPU=round(cpu_sum/cpu_count * 100)
+eval IntegrationToolbar=if(ProcessName="IntegrationToolbar" ,"true" ,"false" )
+eval logoff_text=case(logoff_reason == 100, "Unknown" ,logoff_reason == 101, "LoggedOnElsewhere" ,logoff_reason == 102, "UserRequest" ,logoff_reason == 103, "SessionLost" ,logoff_reason == 1001, "Clear all currently logged in user sessions" ,logoff_reason == 1002, "Archive ended sessions" )
+eval subnet=case(cidrmatch("192.168.0.0/16" ,src),"192.168.0" ,\n cidrmatch("172.16.0.0/12" ,src),"172.16" )\n
+eval size_mb=round((size_bytes/1024/1024),1)
+eval lastSentTime=strftime(lastTime,"%m/%d/%y %H:%M:%S %Z" )
+eval AvgMailboxSizeMB=round(AvgMailboxSizeMB,0)
+eval UsedGB = CommittedBytes/1024/1024/1024
+eval Value=LatencySessionAverage
+eval dst_port = tcp_port_str+"," +udp_port_str
+eval iterator="src_ip"
+eval "category" =if(isnull(category),"unknown" ,category)
+eval adminuser=src_nt_domain."\\" .src_user
+eval rank=sort_rank \n
+eval services=rack \n
+eval tsidxnamespace="vmw_perf_" + displayperftype + "_virtualmachine"
+eval percError=failure_count*100/(success_count+failure_count)
+eval RDF=floor(RDF/1024/1024) ] \n
+eval group="Last 24 hours" ]
+eval iterator="sf_src_ip"
+eval area=split(area,"," )
+eval read_iops=rReq_PS
+eval ExceptionDetails=if( like( ExceptionDetails , "%cannot find node ID for address%" ), "cannot find node ID for address" , ExceptionDetails )\n
+eval browser=case(match(f5useragent, "Chrome" ), "Chrome" , match(f5useragent, "Firefox" ), "Firefox" , match(f5useragent, "MSIE 6" ), "IE6" , match(f5useragent, "MSIE 7" ), "IE7" , match(f5useragent, "MSIE 8" ), "IE8" , match(f5useragent, "MSIE 9" ), "IE9" , match(f5useragent, "MSIE 10" ), "IE10" , match(f5useragent, "MSIE" ), "IE?" , match(f5useragent, "Safari" ), "Safari" )
+eval FDPercentUsed=round(((FDUsed/MaxFileDescriptorCount) * 100),2)\n
+eval iterator="ip"
+eval eventcode=facility + "-" + severity_id + "-" + mnemonic
+eval EndDate=now() - (86400 * 30)\n
+eval owner="--Many to specify--"
+eval MsgDetails =if(like(MsgDetails,"%Only one issuance is allowed at a time for this subscription per customer %" ),"Message=300008-Subscription expiration date would cause more than one issuance to occur. Only one issuance is allowed at a time for this subscription per customer" ,MsgDetails)\n
+eval TotalSpace = Round(((100*FreeSpace)/PercentFreeSpace))
+eval src_count_avg=round(src_count_avg, 2)
+eval clientip=Source_Network_Address
+eval avg_kb_last_week = round(avg_kb_last_week, 4)
+eval Metric="CPU" \n
+eval "CBM Type" ="MSPU" \n
+eval CATEGORY=mvindex(CATEGORY, 0, 2)
+eval isPopulated=if(fullhierarchycount>0,"Populated" ,"Empty" )
+eval combinedfilenamesize=mvzip(filename, filesize)
+eval parentType=if(parentName=="host" ,grandparentType,parentType)
+eval autopush=autopush+" --" +count
+eval MB=round(MB,1) ] \n
+eval range=case(PercentProcessorTime<80, "OK (<80%)" , PercentProcessorTime<95, "Warn (80%-94%)" , 1==1, "High (95%+)" )
+eval old_domain_url=if(match(old_domain_url, "BLANK.*" ),"" ,old_domain_url)
+eval UMB=round(UMB, 1)\n
+eval bytes = `formatbytestom(bytes)`
+eval "% used" =round(used_bytes/quota*100,2)
+eval porta=host."." .port
+eval patst2=strptime(ProcessAllTicketsStart2, "%H:%M" )
+eval Agent=cs_user_agent\n
+eval num_vms=mvcount(vms)
+eval UserAgent=coalesce(UserAgent,cs_User_Agent_)
+eval subnet=case(cidrmatch("192.168.0.0/16" ,src),"192.168.0.0/16" ,\n cidrmatch("172.16.0.0/12" ,src),"172.16.0.0/12" )\n
+eval url_ip=mvindex(url_ip, 0)
+eval "Alert Type" ="Warning "
+eval percent=round(usage/leases*100,2)
+eval newVar2=mvindex(Account_Name,0)
+eval freeSpace=`format_bytes(freeSpace)`
+eval group = coalesce(Target_Account_Name, mvindex(Account_Name,2), Group_Name)
+eval Pending=mvindex(Data, 1)\n
+eval stack_id=stack_ids
+eval src_count_limit_exceeded=if(src_count>src_count_limit, "true" , "false" )
+eval TotalGB = (AvailableBytes/1024/1024/1024) + (CommittedBytes/1024/1024/1024)
+eval linkedContainers=split(lc,"###" )
+eval disk-pctfree = mvzip(disk, pctfree)
+eval firstseen=_time
+eval name=if(isnull(name),lastseenname,name)
+eval cutoff=info_max_time-300
+eval Overprovisioned_GB=(provisionedSpace-totalSpace)
+eval Version=cs_user_agent\n
+eval user_subject=dest_nt_domain."\\" .user
+eval kbytes=filesize/1024/1024
+eval percent=count*100/load_total
+eval splunk_server=my_splunk_server
+eval stack_id=title
+eval _time = if(_time < info_min_time + 7*86400, _time + 7*86400+1800, _time+1800)
+eval ModMethod=case(Administrator="UNISUPER\\DRAASSA" , "DRA" , Administrator!="UNISUPER\\DRAASSA" , "Other" )
+eval percentException=round(failed*100/(total),2)
+eval gauge_danger=totalGB*0.8
+eval old_domain_url=old_domain_url+";"
+eval reqcount=1
+eval cncport=case(name like "%Outbound%" AND direction="Outbound" ,srcPort, direction="Unknown" ,dstPort, name like "%Inbound%" AND direction="Inbound" ,srcPort)
+eval http_response=coalesce(status_code, http_response, action, conn_state)
+eval reqcount=case(time_taken < 10000, "NormalRTCount" ,time_taken > 10000, "SlowRTCount" )
+eval provisioned=`format_bytes(provisioned)`
+eval Seconds=(Evt_sum_BootTime / 1000)
+eval "user" =if(isnull(user),"unknown" ,user)
+eval sort_rank=99
+eval temp="foo"
+eval second=if(isnull(second),mvappend(second2lastTime,lastTime),second)
+eval day_type=if(((day_weekday="Sunday" ) OR (day_weekday="Saturday" )),"weekend" ,"weekday" )
+eval mb_sent = sum_bytes_sent/(1024*1024)
+eval Month=substr(TimeNew, -4)+"-" + substr(TimeNew, 1, 2)
+eval category=split(category,";" )
+eval subnet=case(cidrmatch("204.76.190.0/22" ,src),"204.76.190" , cidrmatch("204.76.190.0/23" ,src),"204.76.190" )
+eval StartDate=strptime(srchdate,"%m/%d/%Y" )\n
+eval subnet=case(cidrmatch("192.168.0.0/16" ,src),"192.168.0.0/16" )
+eval Boot_Duration=Round(Boot_Duration/1000,4)
+eval sort_rank=case(server_role=="search-head" ,1,server_role=="stand-alone indexer" OR server_role=="search-peer" ,2,server_role=="forwarder" ,3)
+eval MDR=floor(MDR/1024/1024) ] \n
+eval "Download MBs" ="0" \n
+eval PercentUsed = ((UsedGB*100)/TotalGB)
+eval Data=mvindex(Agent, 2) \n
+eval server_status = case(isnull(_time),-1,like(server_role,"%peer%" ) OR like(server_role,"%indexer%" ),if(heartbeat_age>60,0,1),1=1,if(heartbeat_age>900,0,1)) \n
+eval Host=if(isNull(Host),host,Host)
+eval reporting_host=upper(host)
+eval Q1=ifnull(round(100-(Q2_Percent/Q2_Usercount)*100, 1), 100)
+eval bytes=if(min_bytes==mean_bytes AND mean_bytes==max_bytes,floor(min_bytes),"min: " .floor(min_bytes)."|avg: " .floor(mean_bytes)."|max: " .floor(max_bytes))
+eval catname="UniqueConnectEvent"
+eval percentage=round(percent,2)
+eval catname="PrivilegedProcessHandleEvent"
+eval Used=round(used_bytes/1024/1024/1024, 3)\n
+eval InternetExplorer=if(ProcessName="iexplore.exe" ,"true" ,"false" )
+eval lt=_time+tonumber(mvindex(tms_timing, mvcount(tms_timing)-1))/1000+.2
+eval sensor_version=mvindex(sensor,0)
+eval family_name=family_name+";"
+eval sens=split(sensors,";" )
+eval subnet=case(cidrmatch("192.168.0.0/16" ,src),"192.168.0.0/16" ) \n
+eval ip=dest_ip
+eval program=mvindex(program, 0, 2)
+eval logon_time=strftime(_time, "%d/%m/%Y %H:%M:%S" )
+eval sourcetype="isa"
+eval DMB=round(DMB, 1)\n
+eval eps = round(eps,4)
+eval autoimport=autoimport+" -- " +count
+eval Pending=mvindex(Data,1)\n
+eval ClusterMoid=if(HostSystemParentType="ClusterComputeResource" , HostSystemParent, "N/A" )
+eval currentPlanId_new=if(currentPlanId=,100,currentPlanId),newPlanId_new=if(newPlanId=,100,newPlanId)
+eval p=replace(path,"\w{8}-\w{4}-\w{4}-\w{4}-\w{12}" ,"id" )
+eval new_grp = if(isnotnull(Account_Name), Group_Name, New_Account_Name)
