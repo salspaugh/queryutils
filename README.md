@@ -76,7 +76,7 @@ search index="_internal" source=*audit.log (action=search) [search index="_inter
 
 This search was written to run on Splunk 6.0 but may work with some other versions.
 You may have to modify this search depending on how you have set up your
-Splunk deployment. You can find an example of data in this format in `test/data/diag2014.csv`.
+Splunk deployment. You can find an example of data in this format in `test/data/format2014.csv`.
 
 *Known issues:* The above query labels some searches as "ad hoc" that appear to
 in fact be generated programmatically, as opposed to hand-issued.
@@ -87,9 +87,9 @@ For older versions of Splunk, you may want to run:
 search index="_internal" host=* action=search (id=* OR search_id=*) source="*audit.log" | eval search_id = if(isnull(search_id), id, search_id) | replace '*' with * in search_id | rex "search_et=(?<search_et>.*?), search_lt" | rex "search_lt=(?<search_lt>.*?), is_realtime" | rex "search='(?<search>.*?)', autojoin" | convert num(total_run_time) | eval user = if(user="n/a", null(), user) | stats values(search_et) as search_et values(search_lt) as search_lt min(_time) as _time first(user) as user max(total_run_time) as total_run_time first(search) as search by search_id | search search_id=* search=search* OR search=rtsearch* search!=*_internal* search!=*_audit* | eval range=(search_lt - search_et) | eval searchtype=case(like(search_id,"13%.%"),"historical",like(search_id,"rt_%"),"realtime",like(search_id,"scheduler__%"),"scheduled",like(search_id,"subsearch_%"),"subsearch",like(search_id,"remote_%"),"remote", like(search_id,"%search%"),"other") | search searchtype!=subsearch | fields + searchtype, search_lt, search_et, range, search_id, user, search | fields + searchtype, range, search_lt, search_et, search, search_id, user, error, savedsearch_name, total_run_time
 ```
 
-You can find an example of data in this format in `test/data/diag2012.json`.
-If you use this query to extract data, specify the version in the code as `diag2012`.
-The default is `diag2014`.
+You can find an example of data in this format in `test/data/format2012.json`.
+If you use this query to extract data, specify the version in the code as `format2012`.
+The default is `format2014`.
 
 *Known issues:* The search type labels for these queries are not trustworthy.
 

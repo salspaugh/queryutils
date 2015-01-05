@@ -15,7 +15,6 @@ Contents:
    downloading
    requirements
    usage
-   testing
    contributing
    documentation
 
